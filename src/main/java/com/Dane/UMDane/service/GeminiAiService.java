@@ -35,7 +35,8 @@ public class GeminiAiService {
             throw new IllegalStateException("Gemini API key is not configured.");
         }
 
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey;
+        // Use stable v1 endpoint and trim the key to avoid trailing whitespaces
+        String url = "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=" + apiKey.trim();
 
         String prompt = String.format(
                 "Hãy biên soạn một bài tập lập trình competitive programming bằng tiếng Việt cho chủ đề: '%s' và bối cảnh/từ khóa: '%s'.\n" +
