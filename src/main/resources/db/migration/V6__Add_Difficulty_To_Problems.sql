@@ -1,0 +1,1 @@
+ALTER TABLE problems ADD COLUMN difficulty VARCHAR(20) DEFAULT 'MEDIUM';

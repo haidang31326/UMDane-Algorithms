@@ -11,6 +11,10 @@ export default function ProblemDetails({ user, showToast }) {
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState(null)
   const [showHint, setShowHint] = useState(false)
+  const [running, setRunning] = useState(false)
+  const [runInput, setRunInput] = useState('')
+  const [runResult, setRunResult] = useState(null)
+  const [showConsole, setShowConsole] = useState(false)
 
   const defaultTemplate = `import java.util.Scanner;
 
@@ -84,6 +88,43 @@ public class Solution {
     }
   }
 
+  const handleRun = async () => {
+    setRunning(true)
+    setRunResult(null)
+    setShowConsole(true)
+
+    try {
+      const response = await fetch('/api/submissions/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': user ? `Bearer ${user.token}` : ''
+        },
+        body: JSON.stringify({
+          code: code,
+          inputData: runInput,
+          language: 'JAVA'
+        })
+      })
+
+      const data = await response.json()
+      if (response.ok && data.code === 200) {
+        setRunResult(data.data)
+        if (data.data.status === 'ACCEPTED') {
+          showToast('Chạy thử hoàn tất thành công!')
+        } else {
+          showToast(`Chạy thử thất bại: ${data.data.status}`, 'error')
+        }
+      } else {
+        showToast(data.message || 'Lỗi khi chạy thử code!', 'error')
+      }
+    } catch (err) {
+      showToast('Không thể kết nối đến máy chủ để chạy thử!', 'error')
+    } finally {
+      setRunning(false)
+    }
+  }
+
   if (loading) {
     return <p style={{ color: 'var(--text-muted)' }}>Đang tải thông tin bài tập...</p>
   }
@@ -111,10 +152,22 @@ public class Solution {
 
         <div className="glass-panel problem-description">
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem' }}>{problem.title}</h1>
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', alignItems: 'center' }}>
             <span className="topic-badge">{problem.topic}</span>
             <span className="topic-badge" style={{ background: 'rgba(6, 182, 212, 0.1)', color: '#22d3ee', borderColor: 'rgba(6, 182, 212, 0.2)' }}>
               {problem.keyword}
+            </span>
+            <span className={`difficulty-badge diff-${(problem.difficulty || 'medium').toLowerCase()}`} style={{
+              display: 'inline-block',
+              padding: '0.2rem 0.5rem',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              backgroundColor: problem.difficulty === 'EASY' ? 'rgba(16, 185, 129, 0.15)' : problem.difficulty === 'HARD' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+              color: problem.difficulty === 'EASY' ? '#10b981' : problem.difficulty === 'HARD' ? '#ef4444' : '#f59e0b',
+              border: problem.difficulty === 'EASY' ? '1px solid rgba(16, 185, 129, 0.3)' : problem.difficulty === 'HARD' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)'
+            }}>
+              {problem.difficulty || 'MEDIUM'}
             </span>
           </div>
 
@@ -156,10 +209,26 @@ public class Solution {
               <Terminal size={14} style={{ color: '#10b981' }} />
               Trình soạn thảo Java (JDK 21)
             </div>
-            <button className="btn btn-primary" onClick={handleSubmit} disabled={submitting} style={{ padding: '0.4rem 1rem', fontSize: '0.85rem' }}>
-              <Play size={12} />
-              {submitting ? 'Đang chấm bài...' : 'Nộp bài'}
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                className="btn btn-secondary" 
+                onClick={handleRun} 
+                disabled={running || submitting} 
+                style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', borderColor: 'var(--border-color)', background: 'transparent', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <Terminal size={12} style={{ color: '#60a5fa' }} />
+                {running ? 'Đang chạy...' : 'Chạy thử'}
+              </button>
+              <button 
+                className="btn btn-primary" 
+                onClick={handleSubmit} 
+                disabled={submitting || running} 
+                style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <Play size={12} />
+                {submitting ? 'Đang chấm...' : 'Nộp bài'}
+              </button>
+            </div>
           </div>
           <div style={{ flex: 1, minHeight: '350px' }}>
             <Editor
@@ -176,6 +245,81 @@ public class Solution {
               }}
             />
           </div>
+        </div>
+
+        {/* Stdin Input Console */}
+        <div className="glass-panel" style={{ marginTop: '1rem', padding: '1rem' }}>
+          <div 
+            onClick={() => setShowConsole(!showConsole)} 
+            style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '0.9rem'
+            }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#60a5fa' }}>
+              <Terminal size={16} />
+              Bảng chạy thử (Custom Input)
+            </span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+              {showConsole ? 'Thu gọn ▲' : 'Mở rộng ▼'}
+            </span>
+          </div>
+
+          {showConsole && (
+            <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '0.35rem', display: 'block', color: 'var(--text-muted)' }}>Dữ liệu đầu vào (Standard Input)</label>
+                <textarea 
+                  className="form-control" 
+                  rows={3} 
+                  value={runInput} 
+                  onChange={(e) => setRunInput(e.target.value)} 
+                  placeholder="Nhập input dữ liệu ở đây... Ví dụ: 5 10"
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', background: 'rgba(15, 23, 42, 0.6)' }}
+                />
+              </div>
+
+              {runResult && (
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+                  <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Kết quả chạy thử:</h4>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                    <span className={`status-badge status-${runResult.status}`}>
+                      {runResult.status === 'ACCEPTED' ? 'SUCCESS' :
+                       runResult.status === 'COMPILE_ERROR' ? 'COMPILE ERROR (CE)' :
+                       runResult.status === 'RUNTIME_ERROR' ? 'RUNTIME ERROR (RE)' :
+                       runResult.status === 'TIME_LIMIT_EXCEEDED' ? 'TIME LIMIT EXCEEDED (TLE)' : runResult.status}
+                    </span>
+                    <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                      Thời gian chạy: <strong style={{ color: 'var(--text-main)' }}>{runResult.runtimeMs} ms</strong>
+                    </span>
+                  </div>
+
+                  {runResult.status === 'ACCEPTED' && (
+                    <div>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Đầu ra (Standard Output):</p>
+                      <pre className="console-output" style={{ background: 'rgba(16, 185, 129, 0.05)', borderColor: 'rgba(16, 185, 129, 0.2)', padding: '0.75rem', borderRadius: '4px', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: '#34d399' }}>
+                        {runResult.output || '(Không có dữ liệu in ra)'}
+                      </pre>
+                    </div>
+                  )}
+
+                  {(runResult.errorOutput || runResult.status === 'COMPILE_ERROR' || runResult.status === 'RUNTIME_ERROR') && (
+                    <div>
+                      <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Chi tiết lỗi:</p>
+                      <pre className="console-output console-error" style={{ padding: '0.75rem', borderRadius: '4px', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
+                        {runResult.errorOutput}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Evaluation Results */}

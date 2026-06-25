@@ -32,6 +32,9 @@ public class Problem {
     @Column(length = 50)
     private String hint;
 
+    @Column(nullable = false, length = 20)
+    private String difficulty = "MEDIUM";
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

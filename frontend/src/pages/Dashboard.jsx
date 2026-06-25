@@ -11,6 +11,7 @@ export default function Dashboard({ user, showToast }) {
   // AI Generator state
   const [topic, setTopic] = useState('Greedy')
   const [keyword, setKeyword] = useState('tiktok')
+  const [difficulty, setDifficulty] = useState('MEDIUM')
   const [generating, setGenerating] = useState(false)
 
   const fetchProblems = async () => {
@@ -65,7 +66,7 @@ export default function Dashboard({ user, showToast }) {
 
     setGenerating(true)
     try {
-      const response = await fetch(`/api/problems/generate?topic=${encodeURIComponent(topic)}&keyword=${encodeURIComponent(keyword)}`, {
+      const response = await fetch(`/api/problems/generate?topic=${encodeURIComponent(topic)}&keyword=${encodeURIComponent(keyword)}&difficulty=${encodeURIComponent(difficulty)}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${user.token}`
@@ -133,6 +134,28 @@ export default function Dashboard({ user, showToast }) {
                 disabled={generating}
               />
             </div>
+            <div className="form-group" style={{ marginBottom: 0, flex: 1, minWidth: '150px' }}>
+              <label className="form-label">Độ khó (Difficulty)</label>
+              <select 
+                className="form-control" 
+                value={difficulty} 
+                onChange={(e) => setDifficulty(e.target.value)} 
+                disabled={generating}
+                style={{ 
+                  background: 'rgba(30, 41, 59, 0.7)', 
+                  color: 'var(--text-main)', 
+                  border: '1px solid var(--border-color)', 
+                  height: '42px', 
+                  padding: '0 0.75rem', 
+                  borderRadius: '6px',
+                  width: '100%'
+                }}
+              >
+                <option value="EASY">Dễ (EASY)</option>
+                <option value="MEDIUM">Trung bình (MEDIUM)</option>
+                <option value="HARD">Khó (HARD)</option>
+              </select>
+            </div>
             <button 
               className="btn btn-primary" 
               onClick={handleGenerate} 
@@ -167,6 +190,7 @@ export default function Dashboard({ user, showToast }) {
                 <tr>
                   <th>Tên bài tập</th>
                   <th>Chủ đề</th>
+                  <th>Độ khó</th>
                   <th>Thao tác</th>
                 </tr>
               </thead>
@@ -176,6 +200,20 @@ export default function Dashboard({ user, showToast }) {
                     <td style={{ fontWeight: 600 }}>{prob.title}</td>
                     <td>
                       <span className="topic-badge">{prob.topic}</span>
+                    </td>
+                    <td>
+                      <span className={`difficulty-badge diff-${(prob.difficulty || 'medium').toLowerCase()}`} style={{
+                        display: 'inline-block',
+                        padding: '0.2rem 0.5rem',
+                        borderRadius: '4px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        backgroundColor: prob.difficulty === 'EASY' ? 'rgba(16, 185, 129, 0.15)' : prob.difficulty === 'HARD' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                        color: prob.difficulty === 'EASY' ? '#10b981' : prob.difficulty === 'HARD' ? '#ef4444' : '#f59e0b',
+                        border: prob.difficulty === 'EASY' ? '1px solid rgba(16, 185, 129, 0.3)' : prob.difficulty === 'HARD' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)'
+                      }}>
+                        {prob.difficulty || 'MEDIUM'}
+                      </span>
                     </td>
                     <td>
                       <Link to={`/problem/${prob.id}`} className="btn btn-primary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>

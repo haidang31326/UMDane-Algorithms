@@ -1,7 +1,9 @@
 package com.Dane.UMDane.controller;
 
 import com.Dane.UMDane.dto.ApiResponse;
+import com.Dane.UMDane.dto.CodeRunDTO;
 import com.Dane.UMDane.dto.CodeSubmitDTO;
+import com.Dane.UMDane.dto.SandboxResult;
 import com.Dane.UMDane.entity.Submission;
 import com.Dane.UMDane.repository.SubmissionRepository;
 import com.Dane.UMDane.service.SubmissionService;
@@ -24,6 +26,12 @@ public class SubmissionController {
     public ResponseEntity<ApiResponse<Submission>> submitCode(@Valid @RequestBody CodeSubmitDTO request) {
         Submission result = submissionService.submitCode(request);
         return ResponseEntity.ok(ApiResponse.success("Chấm bài hoàn tất!", result));
+    }
+
+    @PostMapping("/run")
+    public ResponseEntity<ApiResponse<SandboxResult>> runCode(@Valid @RequestBody CodeRunDTO request) {
+        SandboxResult result = submissionService.runCode(request);
+        return ResponseEntity.ok(ApiResponse.success("Chạy thử hoàn tất!", result));
     }
 
     @GetMapping

@@ -41,16 +41,17 @@ public class ProblemService {
     }
 
     @Transactional
-    public ProblemResponseDTO generateProblem(String topic, String keyword) {
+    public ProblemResponseDTO generateProblem(String topic, String keyword, String difficulty) {
         String title;
         String description;
         String hint;
         List<TestCase> testCases = new ArrayList<>();
+        String normalizedDifficulty = (difficulty == null || difficulty.trim().isEmpty()) ? "MEDIUM" : difficulty.toUpperCase().trim();
 
         if (geminiAiService.isApiKeyConfigured()) {
             try {
-                log.info("Đang gọi Gemini AI để sinh đề bài: topic={}, keyword={}", topic, keyword);
-                GeminiAiService.GeneratedProblem aiProb = geminiAiService.generateProblemFromAi(topic, keyword);
+                log.info("Đang gọi Gemini AI để sinh đề bài: topic={}, keyword={}, difficulty={}", topic, keyword, normalizedDifficulty);
+                GeminiAiService.GeneratedProblem aiProb = geminiAiService.generateProblemFromAi(topic, keyword, normalizedDifficulty);
                 
                 title = aiProb.getTitle();
                 description = aiProb.getDescription();
@@ -65,11 +66,11 @@ public class ProblemService {
                 }
             } catch (Exception e) {
                 log.error("AI generation failed, falling back to mock generator", e);
-                return generateMockProblem(topic, keyword);
+                return generateMockProblem(topic, keyword, normalizedDifficulty);
             }
         } else {
             log.info("Chưa cấu hình Gemini API Key. Sử dụng generator offline làm fallback.");
-            return generateMockProblem(topic, keyword);
+            return generateMockProblem(topic, keyword, normalizedDifficulty);
         }
 
         Problem problem = Problem.builder()
@@ -78,6 +79,7 @@ public class ProblemService {
                 .keyword(keyword)
                 .description(description)
                 .hint(hint)
+                .difficulty(normalizedDifficulty)
                 .build();
         problem = problemRepository.save(problem);
 
@@ -89,7 +91,7 @@ public class ProblemService {
         return mapToDTO(problem);
     }
 
-    private ProblemResponseDTO generateMockProblem(String topic, String keyword) {
+    private ProblemResponseDTO generateMockProblem(String topic, String keyword, String difficulty) {
         String title;
         String description;
         String hint;
@@ -117,6 +119,7 @@ public class ProblemService {
                 .keyword(keyword)
                 .description(description)
                 .hint(hint)
+                .difficulty(difficulty)
                 .build();
         problem = problemRepository.save(problem);
 
@@ -145,6 +148,8 @@ public class ProblemService {
                 .keyword(problem.getKeyword())
                 .title(problem.getTitle())
                 .description(problem.getDescription())
+                .difficulty(problem.getDifficulty())
+                .hint(problem.getHint())
                 .build();
     }
 }

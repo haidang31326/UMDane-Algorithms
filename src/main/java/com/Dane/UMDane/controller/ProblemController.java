@@ -39,8 +39,9 @@ public class ProblemController {
     @PostMapping("/generate")
     public ResponseEntity<ApiResponse<ProblemResponseDTO>> generateProblem(
             @RequestParam String topic,
-            @RequestParam String keyword) {
-        ProblemResponseDTO problem = problemService.generateProblem(topic, keyword);
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "MEDIUM") String difficulty) {
+        ProblemResponseDTO problem = problemService.generateProblem(topic, keyword, difficulty);
         return ResponseEntity.ok(ApiResponse.success("Tạo bài toán ngẫu nhiên thành công!", problem));
     }
 }

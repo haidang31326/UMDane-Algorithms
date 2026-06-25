@@ -46,20 +46,24 @@ public class GeminiAiService {
         return clean.trim();
     }
 
-    public GeneratedProblem generateProblemFromAi(String topic, String keyword) {
+    public GeneratedProblem generateProblemFromAi(String topic, String keyword, String difficulty) {
         if (!isApiKeyConfigured()) {
             throw new IllegalStateException("Gemini API key is not configured.");
         }
 
         String cleanedKey = cleanApiKey();
-        // Use the newest gemini-3.5-flash model as requested by the user
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + cleanedKey;
+        // Switch back to gemini-2.5-flash due to 503 high demand on 3.5-flash
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + cleanedKey;
 
         String prompt = String.format(
-                "Hãy biên soạn một bài tập lập trình competitive programming bằng tiếng Việt cho chủ đề: '%s' và bối cảnh/từ khóa: '%s'.\n" +
+                "Hãy biên soạn một bài tập lập trình competitive programming với độ khó '%s' bằng tiếng Việt cho chủ đề: '%s' và bối cảnh/từ khóa: '%s'.\n" +
                 "Yêu cầu đề bài phải có tiêu đề, mô tả chi tiết, hướng dẫn đọc dữ liệu đầu vào (Standard Input) và in kết quả ra màn hình (Standard Output).\n" +
+                "Độ khó '%s' yêu cầu:\n" +
+                "- EASY: Thuật toán rất cơ bản, các bài tính toán đơn giản, nhập xuất đơn giản.\n" +
+                "- MEDIUM: Thuật toán trung bình (Greedy, Quy hoạch động cơ bản, Sắp xếp, Tìm kiếm nhị phân, Cấu trúc dữ liệu mảng/list).\n" +
+                "- HARD: Thuật toán nâng cao (Đồ thị, Quy hoạch động phức tạp, Cấu trúc dữ liệu nâng cao như Tree/Segment Tree, thời gian chạy tối ưu).\n" +
                 "Sinh ra ít nhất 3 test cases hợp lệ phục vụ cho việc chấm bài của hệ thống Online Judge. Dữ liệu đầu vào của test case phải khớp với cách mô tả trong đề bài, và đáp án expectedOutput phải chính xác hoàn toàn.",
-                topic, keyword
+                difficulty, topic, keyword, difficulty
         );
 
         try {

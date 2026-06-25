@@ -1,5 +1,6 @@
 package com.Dane.UMDane.service;
 
+import com.Dane.UMDane.dto.CodeRunDTO;
 import com.Dane.UMDane.dto.CodeSubmitDTO;
 import com.Dane.UMDane.dto.SandboxResult;
 import com.Dane.UMDane.entity.Submission;
@@ -121,6 +122,11 @@ public class SubmissionService {
         broadcastUpdate(submission);
 
         return submission;
+    }
+
+    public SandboxResult runCode(CodeRunDTO requestDTO) {
+        log.info("Đang chạy thử code (không lưu database)...");
+        return sandboxService.execute(requestDTO.getCode(), requestDTO.getInputData(), 2000, 128);
     }
 
     private void broadcastUpdate(Submission submission) {

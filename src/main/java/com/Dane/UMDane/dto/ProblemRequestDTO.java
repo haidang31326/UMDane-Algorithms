@@ -19,4 +19,6 @@ public class ProblemRequestDTO {
     private String description;
 
     private String hint;
+
+    private String difficulty;
 }
