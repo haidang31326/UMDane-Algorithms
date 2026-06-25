@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Play, ClipboardList, BookOpen, Sparkles } from 'lucide-react'
+import { Play, ClipboardList, BookOpen, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
 
 export default function Dashboard({ user, showToast }) {
   const [problems, setProblems] = useState([])
@@ -13,6 +13,41 @@ export default function Dashboard({ user, showToast }) {
   const [keyword, setKeyword] = useState('tiktok')
   const [difficulty, setDifficulty] = useState('MEDIUM')
   const [generating, setGenerating] = useState(false)
+
+  const [expandedTopics, setExpandedTopics] = useState({})
+
+  const toggleTopic = (topicName) => {
+    setExpandedTopics(prev => ({
+      ...prev,
+      [topicName]: prev[topicName] === false ? true : false
+    }))
+  }
+
+  const groupedProblems = useMemo(() => {
+    const groups = problems.reduce((acc, prob) => {
+      const t = prob.topic || 'Khác'
+      if (!acc[t]) {
+        acc[t] = []
+      }
+      acc[t].push(prob)
+      return acc
+    }, {})
+
+    const getDiffWeight = (d) => {
+      switch (d?.toUpperCase()) {
+        case 'EASY': return 1
+        case 'MEDIUM': return 2
+        case 'HARD': return 3
+        default: return 2
+      }
+    }
+
+    Object.keys(groups).forEach(t => {
+      groups[t].sort((a, b) => getDiffWeight(a.difficulty) - getDiffWeight(b.difficulty))
+    })
+
+    return groups
+  }, [problems])
 
   const fetchProblems = async () => {
     try {
@@ -182,49 +217,85 @@ export default function Dashboard({ user, showToast }) {
           </h2>
           {loadingProblems ? (
             <p style={{ color: 'var(--text-muted)' }}>Đang tải đề bài...</p>
-          ) : problems.length === 0 ? (
+          ) : Object.keys(groupedProblems).length === 0 ? (
             <p style={{ color: 'var(--text-muted)' }}>Hiện chưa có bài tập nào.</p>
           ) : (
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Tên bài tập</th>
-                  <th>Chủ đề</th>
-                  <th>Độ khó</th>
-                  <th>Thao tác</th>
-                </tr>
-              </thead>
-              <tbody>
-                {problems.map((prob) => (
-                  <tr key={prob.id}>
-                    <td style={{ fontWeight: 600 }}>{prob.title}</td>
-                    <td>
-                      <span className="topic-badge">{prob.topic}</span>
-                    </td>
-                    <td>
-                      <span className={`difficulty-badge diff-${(prob.difficulty || 'medium').toLowerCase()}`} style={{
-                        display: 'inline-block',
-                        padding: '0.2rem 0.5rem',
-                        borderRadius: '4px',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        backgroundColor: prob.difficulty === 'EASY' ? 'rgba(16, 185, 129, 0.15)' : prob.difficulty === 'HARD' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
-                        color: prob.difficulty === 'EASY' ? '#10b981' : prob.difficulty === 'HARD' ? '#ef4444' : '#f59e0b',
-                        border: prob.difficulty === 'EASY' ? '1px solid rgba(16, 185, 129, 0.3)' : prob.difficulty === 'HARD' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)'
-                      }}>
-                        {prob.difficulty || 'MEDIUM'}
-                      </span>
-                    </td>
-                    <td>
-                      <Link to={`/problem/${prob.id}`} className="btn btn-primary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>
-                        <Play size={12} />
-                        Làm bài
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {Object.entries(groupedProblems).map(([topicName, topicProbs]) => {
+                const isExpanded = expandedTopics[topicName] !== false;
+                return (
+                  <div key={topicName} className="glass-panel" style={{ padding: 0, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.01)', borderRadius: '8px' }}>
+                    {/* Accordion Header */}
+                    <div 
+                      onClick={() => toggleTopic(topicName)}
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        padding: '0.85rem 1.1rem', 
+                        cursor: 'pointer', 
+                        background: 'rgba(255, 255, 255, 0.02)',
+                        userSelect: 'none',
+                        transition: 'background 0.2s'
+                      }}
+                      className="accordion-header-hover"
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>{topicName}</span>
+                        <span className="topic-badge" style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                          {topicProbs.length} bài tập
+                        </span>
+                      </div>
+                      <div style={{ color: 'var(--text-muted)' }}>
+                        {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </div>
+                    </div>
+
+                    {/* Accordion Table Content */}
+                    {isExpanded && (
+                      <div style={{ padding: '0.5rem 1.1rem 1.1rem 1.1rem', borderTop: '1px solid rgba(255,255,255,0.03)' }}>
+                        <table className="data-table" style={{ margin: 0 }}>
+                          <thead>
+                            <tr>
+                              <th>Tên bài tập</th>
+                              <th>Độ khó</th>
+                              <th>Thao tác</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {topicProbs.map((prob) => (
+                              <tr key={prob.id}>
+                                <td style={{ fontWeight: 600 }}>{prob.title}</td>
+                                <td>
+                                  <span className={`difficulty-badge diff-${(prob.difficulty || 'medium').toLowerCase()}`} style={{
+                                    display: 'inline-block',
+                                    padding: '0.2rem 0.5rem',
+                                    borderRadius: '4px',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700,
+                                    backgroundColor: prob.difficulty === 'EASY' ? 'rgba(16, 185, 129, 0.15)' : prob.difficulty === 'HARD' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                                    color: prob.difficulty === 'EASY' ? '#10b981' : prob.difficulty === 'HARD' ? '#ef4444' : '#f59e0b',
+                                    border: prob.difficulty === 'EASY' ? '1px solid rgba(16, 185, 129, 0.3)' : prob.difficulty === 'HARD' ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid rgba(245, 158, 11, 0.3)'
+                                  }}>
+                                    {prob.difficulty || 'MEDIUM'}
+                                  </span>
+                                </td>
+                                <td>
+                                  <Link to={`/problem/${prob.id}`} className="btn btn-primary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>
+                                    <Play size={12} />
+                                    Làm bài
+                                  </Link>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 
