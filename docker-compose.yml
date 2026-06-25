@@ -29,6 +29,7 @@ services:
       - SPRING_DATASOURCE_PASSWORD=umdane_password
       - SPRING_DATA_REDIS_HOST=umdane-redis
       - SPRING_DATA_REDIS_PORT=6379
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     ports:
       - "8080:8080"
     volumes:
