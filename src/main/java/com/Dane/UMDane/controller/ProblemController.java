@@ -35,4 +35,12 @@ public class ProblemController {
         ProblemResponseDTO problem = problemService.getRandomProblemByVibe(topic, keyword);
         return ResponseEntity.ok(problem);
     }
+
+    @PostMapping("/generate")
+    public ResponseEntity<ApiResponse<ProblemResponseDTO>> generateProblem(
+            @RequestParam String topic,
+            @RequestParam String keyword) {
+        ProblemResponseDTO problem = problemService.generateProblem(topic, keyword);
+        return ResponseEntity.ok(ApiResponse.success("Tạo bài toán ngẫu nhiên thành công!", problem));
+    }
 }

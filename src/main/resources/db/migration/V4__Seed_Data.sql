@@ -1,8 +1,8 @@
 -- Seed Users
--- Password is 'password' for both users (BCrypt hash: $2a$10$DGP6auoXk14kI61.dEuf.e5d3k.m6k8mP.J3P3U6B6hWzWn9LmWXy)
+-- Password is 'password' for both users (BCrypt hash: $2a$10$z/hQcSZwzNG1FLKsWnqLA.gLdsqkK7EsHm7FRJv8OFRfypastgz1K)
 INSERT INTO users (username, password, email, role) VALUES 
-('admin', '$2a$10$DGP6auoXk14kI61.dEuf.e5d3k.m6k8mP.J3P3U6B6hWzWn9LmWXy', 'admin@umdane.com', 'ADMIN'),
-('user', '$2a$10$DGP6auoXk14kI61.dEuf.e5d3k.m6k8mP.J3P3U6B6hWzWn9LmWXy', 'user@umdane.com', 'USER');
+('admin', '$2a$10$z/hQcSZwzNG1FLKsWnqLA.gLdsqkK7EsHm7FRJv8OFRfypastgz1K', 'admin@umdane.com', 'ADMIN'),
+('user', '$2a$10$z/hQcSZwzNG1FLKsWnqLA.gLdsqkK7EsHm7FRJv8OFRfypastgz1K', 'user@umdane.com', 'USER');
 
 -- Seed Problems
 INSERT INTO problems (id, topic, keyword, title, description, hint) VALUES

@@ -28,3 +28,7 @@ spring:
     redis:
       host: localhost
       port: 6379
+
+umdane:
+  gemini:
+    api-key: ${GEMINI_API_KEY:}
