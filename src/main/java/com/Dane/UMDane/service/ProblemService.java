@@ -16,10 +16,16 @@ public class ProblemService {
     private final ProblemRepository problemRepository;
     private final Random random = new Random();
 
-    public ProblemResponseDTO getRandomProblemByVibe(String topic,String keyword) {
+    public List<ProblemResponseDTO> getAllProblems() {
+        return problemRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .toList();
+    }
+
+    public ProblemResponseDTO getRandomProblemByVibe(String topic, String keyword) {
         List<Problem> problems = problemRepository.findByTopicAndKeyword(topic, keyword);
 
-        if(problems.isEmpty()) {
+        if (problems.isEmpty()) {
             throw new RuntimeException("chưa có cha ơi");
         }
         Problem problem = problems.get(random.nextInt(problems.size()));
@@ -45,5 +51,4 @@ public class ProblemService {
                 .description(problem.getDescription())
                 .build();
     }
-
 }

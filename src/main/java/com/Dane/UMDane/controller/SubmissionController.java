@@ -3,23 +3,32 @@ package com.Dane.UMDane.controller;
 import com.Dane.UMDane.dto.ApiResponse;
 import com.Dane.UMDane.dto.CodeSubmitDTO;
 import com.Dane.UMDane.entity.Submission;
+import com.Dane.UMDane.repository.SubmissionRepository;
 import com.Dane.UMDane.service.SubmissionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/submissions")
 @RequiredArgsConstructor
 public class SubmissionController {
-    private final SubmissionService  submissionService;
+    private final SubmissionService submissionService;
+    private final SubmissionRepository submissionRepository;
+
     @PostMapping
     public ResponseEntity<ApiResponse<Submission>> submitCode(@Valid @RequestBody CodeSubmitDTO request) {
         Submission result = submissionService.submitCode(request);
         return ResponseEntity.ok(ApiResponse.success("Chấm bài hoàn tất!", result));
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<Submission>>> getRecentSubmissions() {
+        List<Submission> submissions = submissionRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài nộp thành công!", submissions));
     }
 }

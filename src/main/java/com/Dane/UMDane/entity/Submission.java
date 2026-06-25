@@ -19,6 +19,9 @@ public class Submission {
     @Column(name = "problem_id", nullable = false)
     private Long problemId;
 
+    @Column(name = "user_id")
+    private Long userId;
+
     @Column(nullable = false, columnDefinition = "TEXT")
     private String code;
 
@@ -31,6 +34,9 @@ public class Submission {
 
     @Column(name = "runtime_ms")
     private Integer runtimeMs;
+
+    @Column(name = "error_message", columnDefinition = "TEXT")
+    private String errorMessage;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
