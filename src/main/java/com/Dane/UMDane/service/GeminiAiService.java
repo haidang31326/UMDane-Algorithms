@@ -52,7 +52,8 @@ public class GeminiAiService {
         }
 
         String cleanedKey = cleanApiKey();
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + cleanedKey;
+        // Use the newest gemini-3.5-flash model as requested by the user
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=" + cleanedKey;
 
         String prompt = String.format(
                 "Hãy biên soạn một bài tập lập trình competitive programming bằng tiếng Việt cho chủ đề: '%s' và bối cảnh/từ khóa: '%s'.\n" +
