@@ -27,7 +27,23 @@ public class GeminiAiService {
     private final RestTemplate restTemplate = new RestTemplate();
 
     public boolean isApiKeyConfigured() {
-        return apiKey != null && !apiKey.trim().isEmpty();
+        return apiKey != null && !cleanApiKey().isEmpty();
+    }
+
+    private String cleanApiKey() {
+        if (apiKey == null) {
+            return "";
+        }
+        String clean = apiKey.trim();
+        // Defensive check: strip leading/trailing double quotes
+        if (clean.startsWith("\"") && clean.endsWith("\"")) {
+            clean = clean.substring(1, clean.length() - 1);
+        }
+        // Defensive check: strip leading/trailing single quotes
+        if (clean.startsWith("'") && clean.endsWith("'")) {
+            clean = clean.substring(1, clean.length() - 1);
+        }
+        return clean.trim();
     }
 
     public GeneratedProblem generateProblemFromAi(String topic, String keyword) {
@@ -35,8 +51,8 @@ public class GeminiAiService {
             throw new IllegalStateException("Gemini API key is not configured.");
         }
 
-        // responseSchema/structured outputs are only supported in v1beta
-        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + apiKey.trim();
+        String cleanedKey = cleanApiKey();
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + cleanedKey;
 
         String prompt = String.format(
                 "Hãy biên soạn một bài tập lập trình competitive programming bằng tiếng Việt cho chủ đề: '%s' và bối cảnh/từ khóa: '%s'.\n" +
