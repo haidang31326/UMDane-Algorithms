@@ -1,6 +1,7 @@
 package com.Dane.UMDane.service;
 
 import com.Dane.UMDane.dto.ProblemResponseDTO;
+import com.Dane.UMDane.dto.TestCaseDTO;
 import com.Dane.UMDane.entity.Problem;
 import com.Dane.UMDane.entity.TestCase;
 import com.Dane.UMDane.repository.ProblemRepository;
@@ -60,6 +61,8 @@ public class ProblemService {
         String constraints = null;
         Integer timeLimit = 2000;
         Integer memoryLimit = 128;
+        String userTemplate = null;
+        String driverCode = null;
         List<TestCase> testCases = new ArrayList<>();
         String normalizedDifficulty = (difficulty == null || difficulty.trim().isEmpty()) ? "MEDIUM" : difficulty.toUpperCase().trim();
 
@@ -74,6 +77,8 @@ public class ProblemService {
                 constraints = aiProb.getConstraints();
                 timeLimit = aiProb.getTimeLimit();
                 memoryLimit = aiProb.getMemoryLimit();
+                userTemplate = aiProb.getUserTemplate();
+                driverCode = aiProb.getDriverCode();
                 
                 for (GeminiAiService.GeneratedTestCase aiTc : aiProb.getTestCases()) {
                     testCases.add(TestCase.builder()
@@ -101,6 +106,8 @@ public class ProblemService {
                 .constraints(constraints)
                 .timeLimit(timeLimit)
                 .memoryLimit(memoryLimit)
+                .userTemplate(userTemplate)
+                .driverCode(driverCode)
                 .build();
         problem = problemRepository.save(problem);
 
@@ -186,6 +193,17 @@ public class ProblemService {
     }
 
     private ProblemResponseDTO mapToDTO(Problem problem) {
+        List<TestCaseDTO> samples = testCaseRepository.findByProblemId(problem.getId()).stream()
+                .filter(tc -> tc.getIsHidden() == null || !tc.getIsHidden())
+                .map(tc -> {
+                    TestCaseDTO dto = new TestCaseDTO();
+                    dto.setInputData(tc.getInputData());
+                    dto.setExpectedOutput(tc.getExpectedOutput());
+                    dto.setIsHidden(false);
+                    return dto;
+                })
+                .toList();
+
         return ProblemResponseDTO.builder()
                 .id(problem.getId())
                 .topic(problem.getTopic())
@@ -197,6 +215,9 @@ public class ProblemService {
                 .constraints(problem.getConstraints())
                 .timeLimit(problem.getTimeLimit())
                 .memoryLimit(problem.getMemoryLimit())
+                .userTemplate(problem.getUserTemplate())
+                .driverCode(problem.getDriverCode())
+                .sampleTestCases(samples)
                 .build();
     }
 }

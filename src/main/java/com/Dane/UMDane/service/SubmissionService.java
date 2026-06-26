@@ -80,7 +80,7 @@ public class SubmissionService {
             // Timeout limit: 2000ms, Memory limit: 128MB
             int timeLimit = (problem.getTimeLimit() != null) ? problem.getTimeLimit() : 2000;
             int memoryLimit = (problem.getMemoryLimit() != null) ? problem.getMemoryLimit() : 128;
-            SandboxResult result = sandboxService.execute(requestDTO.getCode(), tc.getInputData(), timeLimit, memoryLimit);
+            SandboxResult result = sandboxService.execute(requestDTO.getCode(), problem.getDriverCode(), tc.getInputData(), timeLimit, memoryLimit);
 
             if (result.getStatus() == SubmissionStatus.COMPILE_ERROR) {
                 finalStatus = SubmissionStatus.COMPILE_ERROR;
@@ -129,7 +129,22 @@ public class SubmissionService {
 
     public SandboxResult runCode(CodeRunDTO requestDTO) {
         log.info("Đang chạy thử code (không lưu database)...");
-        return sandboxService.execute(requestDTO.getCode(), requestDTO.getInputData(), 2000, 128);
+        String driverCode = null;
+        int timeLimit = 2000;
+        int memoryLimit = 128;
+        if (requestDTO.getProblemId() != null) {
+            try {
+                Problem problem = problemRepository.findById(requestDTO.getProblemId()).orElse(null);
+                if (problem != null) {
+                    driverCode = problem.getDriverCode();
+                    if (problem.getTimeLimit() != null) timeLimit = problem.getTimeLimit();
+                    if (problem.getMemoryLimit() != null) memoryLimit = problem.getMemoryLimit();
+                }
+            } catch (Exception e) {
+                log.warn("Lỗi khi lấy driver code cho chạy thử", e);
+            }
+        }
+        return sandboxService.execute(requestDTO.getCode(), driverCode, requestDTO.getInputData(), timeLimit, memoryLimit);
     }
 
     private void broadcastUpdate(Submission submission) {

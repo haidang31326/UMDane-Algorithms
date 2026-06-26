@@ -47,6 +47,12 @@ public class Problem {
     @Builder.Default
     private Integer memoryLimit = 128;
 
+    @Column(name = "user_template", columnDefinition = "TEXT")
+    private String userTemplate;
+
+    @Column(name = "driver_code", columnDefinition = "TEXT")
+    private String driverCode;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

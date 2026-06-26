@@ -18,7 +18,7 @@ import java.util.regex.Pattern;
 @Slf4j
 public class DockerSandboxService {
 
-    public SandboxResult execute(String code, String inputData, int timeLimitMs, int memoryLimitMb) {
+    public SandboxResult execute(String code, String driverCode, String inputData, int timeLimitMs, int memoryLimitMb) {
         String className = extractClassName(code);
         Path tempDir = null;
         try {
@@ -26,20 +26,34 @@ public class DockerSandboxService {
             tempDir = Files.createTempDirectory("umdane-sandbox-" + UUID.randomUUID());
             String hostPath = tempDir.toAbsolutePath().toString().replace("\\", "/");
 
-            // Write the Java code file
+            // Write the user's Java code file
             File sourceFile = new File(tempDir.toFile(), className + ".java");
             try (FileWriter writer = new FileWriter(sourceFile, StandardCharsets.UTF_8)) {
                 writer.write(code);
             }
 
+            // Write the driver code if present
+            String mainClassName = className;
+            if (driverCode != null && !driverCode.trim().isEmpty()) {
+                String driverClassName = extractClassName(driverCode);
+                if (driverClassName == null || driverClassName.isEmpty()) {
+                    driverClassName = "Main";
+                }
+                mainClassName = driverClassName;
+                File driverFile = new File(tempDir.toFile(), driverClassName + ".java");
+                try (FileWriter writer = new FileWriter(driverFile, StandardCharsets.UTF_8)) {
+                    writer.write(driverCode);
+                }
+            }
+
             // 1. COMPILE CODE using JDK Container
-            SandboxResult compileResult = compile(hostPath, className);
+            SandboxResult compileResult = compile(hostPath, mainClassName);
             if (compileResult.getStatus() == SubmissionStatus.COMPILE_ERROR) {
                 return compileResult;
             }
 
             // 2. RUN CODE using JRE Container with constraints
-            return run(hostPath, className, inputData, timeLimitMs, memoryLimitMb);
+            return run(hostPath, mainClassName, inputData, timeLimitMs, memoryLimitMb);
 
         } catch (Exception e) {
             log.error("Lỗi trong quá trình chạy sandbox", e);
@@ -56,29 +70,34 @@ public class DockerSandboxService {
         }
     }
 
-    private SandboxResult compile(String localPath, String className) throws IOException, InterruptedException {
+    private SandboxResult compile(String localPath, String mainClassName) throws IOException, InterruptedException {
         String containerName = "umdane-compile-" + UUID.randomUUID();
 
-        // 1. Create a JDK container to run javac
+        // 1. Create a JDK container to run javac on the main class
         String[] createCmd = {
                 "docker", "create",
                 "--name", containerName,
                 "--network", "none",
                 "-w", "/app",
                 "eclipse-temurin:21-alpine",
-                "javac", className + ".java"
+                "javac", mainClassName + ".java"
         };
         runCmdSynchronously(createCmd);
 
         try {
-            // 2. Copy the source file from localPath into the container
-            String localJavaFile = localPath + "/" + className + ".java";
-            String[] cpCmd = {
-                    "docker", "cp",
-                    localJavaFile,
-                    containerName + ":/app/" + className + ".java"
-            };
-            runCmdSynchronously(cpCmd);
+            // 2. Copy all java files from localPath into the container
+            File dir = new File(localPath);
+            File[] files = dir.listFiles((d, name) -> name.endsWith(".java"));
+            if (files != null) {
+                for (File f : files) {
+                    String[] cpCmd = {
+                            "docker", "cp",
+                            f.getAbsolutePath(),
+                            containerName + ":/app/" + f.getName()
+                    };
+                    runCmdSynchronously(cpCmd);
+                }
+            }
 
             // 3. Start compile container and capture stdout/stderr
             String[] startCmd = {

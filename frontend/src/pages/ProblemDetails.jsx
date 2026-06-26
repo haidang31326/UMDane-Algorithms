@@ -73,7 +73,10 @@ public class Solution {
           if (savedDraft) {
             setCode(savedDraft)
           } else {
-            setCode(defaultTemplate)
+            setCode(data.userTemplate ? data.userTemplate : defaultTemplate)
+          }
+          if (data.sampleTestCases && data.sampleTestCases.length > 0) {
+            setRunInput(data.sampleTestCases[0].inputData)
           }
         } else {
           showToast('Không tìm thấy bài tập!', 'error')
@@ -142,6 +145,7 @@ public class Solution {
           'Authorization': user ? `Bearer ${user.token}` : ''
         },
         body: JSON.stringify({
+          problemId: parseInt(id),
           code: code,
           inputData: runInput,
           language: 'JAVA'
@@ -344,10 +348,40 @@ public class Solution {
           {showConsole && (
             <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '0.35rem', display: 'block', color: 'var(--text-muted)' }}>Dữ liệu đầu vào (Standard Input)</label>
+                <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '0.5rem', display: 'block', color: 'var(--text-muted)' }}>
+                  Dữ liệu đầu vào mẫu (Sample Test Cases)
+                </label>
+                {problem.sampleTestCases && problem.sampleTestCases.length > 0 ? (
+                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                    {problem.sampleTestCases.map((tc, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        className="btn"
+                        onClick={() => setRunInput(tc.inputData)}
+                        style={{
+                          padding: '0.3rem 0.6rem',
+                          fontSize: '0.75rem',
+                          borderRadius: '4px',
+                          background: runInput === tc.inputData ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                          color: runInput === tc.inputData ? '#10b981' : 'var(--text-muted)',
+                          border: runInput === tc.inputData ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-color)',
+                          cursor: 'pointer',
+                          fontWeight: runInput === tc.inputData ? 700 : 500
+                        }}
+                      >
+                        Ví dụ {idx + 1}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>
+                    Không có test case mẫu nào được cấu hình.
+                  </span>
+                )}
                 <textarea 
                   className="form-control" 
-                  rows={3} 
+                  rows={4} 
                   value={runInput} 
                   onChange={(e) => setRunInput(e.target.value)} 
                   placeholder="Nhập input dữ liệu ở đây... Ví dụ: 5 10"

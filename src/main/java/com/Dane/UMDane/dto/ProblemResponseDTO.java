@@ -3,6 +3,7 @@ package com.Dane.UMDane.dto;
 import lombok.Builder;
 import lombok.Data;
 import java.io.Serializable;
+import java.util.List;
 
 @Data
 @Builder
@@ -20,4 +21,7 @@ public class ProblemResponseDTO implements Serializable {
     private String constraints;
     private Integer timeLimit;
     private Integer memoryLimit;
+    private String userTemplate;
+    private String driverCode;
+    private List<TestCaseDTO> sampleTestCases;
 }
