@@ -2,38 +2,32 @@ package com.Dane.UMDane.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "problems")
+@Table(name = "users")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Problem {
+public class User {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 50)
-    private String topic;
-
-    @Column(nullable = false, length = 50)
-    private String keyword;
+    @Column(nullable = false, unique = true, length = 50)
+    private String username;
 
     @Column(nullable = false)
-    private String title;
+    private String password;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String description;
+    @Column(nullable = false, unique = true, length = 100)
+    private String email;
 
-    @Column(length = 50)
-    private String hint;
-
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private String difficulty = "MEDIUM";
+    private UserRole role;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

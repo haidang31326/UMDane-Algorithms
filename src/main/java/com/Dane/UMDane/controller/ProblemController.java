@@ -1,10 +1,15 @@
 package com.Dane.UMDane.controller;
 
+import com.Dane.UMDane.dto.ApiResponse;
 import com.Dane.UMDane.dto.ProblemResponseDTO;
 import com.Dane.UMDane.service.ProblemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.Dane.UMDane.security.UserPrincipal;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/problems")
@@ -12,6 +17,21 @@ import org.springframework.web.bind.annotation.*;
 public class ProblemController {
 
     private final ProblemService problemService;
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<ProblemResponseDTO>>> getAllProblems() {
+        Long userId = null;
+        try {
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (principal instanceof UserPrincipal) {
+                userId = ((UserPrincipal) principal).getId();
+            }
+        } catch (Exception e) {
+            // Not authenticated
+        }
+        List<ProblemResponseDTO> problems = problemService.getAllProblems(userId);
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài toán thành công!", problems));
+    }
 
     @GetMapping("/{id}")
     public ResponseEntity<ProblemResponseDTO> getProblemById(@PathVariable Long id) {
@@ -25,5 +45,29 @@ public class ProblemController {
             @RequestParam String keyword) {
         ProblemResponseDTO problem = problemService.getRandomProblemByVibe(topic, keyword);
         return ResponseEntity.ok(problem);
+    }
+
+    @PostMapping("/generate")
+    public ResponseEntity<ApiResponse<ProblemResponseDTO>> generateProblem(
+            @RequestParam String topic,
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "MEDIUM") String difficulty) {
+        ProblemResponseDTO problem = problemService.generateProblem(topic, keyword, difficulty);
+        return ResponseEntity.ok(ApiResponse.success("Tạo bài toán ngẫu nhiên thành công!", problem));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteProblem(@PathVariable Long id) {
+        Long userId = null;
+        try {
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (principal instanceof UserPrincipal) {
+                userId = ((UserPrincipal) principal).getId();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Bạn cần đăng nhập để thực hiện chức năng này!");
+        }
+        problemService.hideProblemForUser(userId, id);
+        return ResponseEntity.ok(ApiResponse.success("Xóa bài tập thành công!", null));
     }
 }

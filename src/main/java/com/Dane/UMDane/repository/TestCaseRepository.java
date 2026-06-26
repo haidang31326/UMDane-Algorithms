@@ -1,11 +1,13 @@
 package com.Dane.UMDane.repository;
 
-import com.Dane.UMDane.entity.Submission;
+import com.Dane.UMDane.entity.TestCase;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @Repository
-public interface SubmissionRepository extends JpaRepository<Submission, Long> {
+public interface TestCaseRepository extends JpaRepository<TestCase, Long> {
+    List<TestCase> findByProblemId(Long problemId);
     void deleteByProblemId(Long problemId);
 }
