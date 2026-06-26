@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Play, ClipboardList, BookOpen, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
+import { Play, ClipboardList, BookOpen, Sparkles, ChevronDown, ChevronUp, CheckCircle2, Trash2 } from 'lucide-react'
 
 const getNormalizedTopicName = (rawTopic) => {
   if (!rawTopic) return 'Khác';
@@ -42,6 +42,7 @@ export default function Dashboard({ user, showToast }) {
   const [submissions, setSubmissions] = useState([])
   const [loadingProblems, setLoadingProblems] = useState(true)
   const [loadingSubmissions, setLoadingSubmissions] = useState(true)
+  const [activeFilter, setActiveFilter] = useState('ALL')
 
   // AI Generator state
   const [topic, setTopic] = useState('Greedy')
@@ -58,8 +59,21 @@ export default function Dashboard({ user, showToast }) {
     }))
   }
 
+  const filteredProblems = useMemo(() => {
+    return problems.filter(prob => {
+      const isSolved = solvedProblemIds.has(prob.id)
+      if (activeFilter === 'AC') {
+        return isSolved
+      }
+      if (activeFilter === 'UNSOLVED') {
+        return !isSolved
+      }
+      return true
+    })
+  }, [problems, solvedProblemIds, activeFilter])
+
   const groupedProblems = useMemo(() => {
-    const groups = problems.reduce((acc, prob) => {
+    const groups = filteredProblems.reduce((acc, prob) => {
       const t = getNormalizedTopicName(prob.topic)
       if (!acc[t]) {
         acc[t] = []
@@ -82,7 +96,7 @@ export default function Dashboard({ user, showToast }) {
     })
 
     return groups
-  }, [problems])
+  }, [filteredProblems])
 
   const uniqueSubmissions = useMemo(() => {
     const latestMap = new Map()
@@ -95,9 +109,21 @@ export default function Dashboard({ user, showToast }) {
     return Array.from(latestMap.values())
   }, [submissions])
 
+  const solvedProblemIds = useMemo(() => {
+    const solved = new Set()
+    submissions.forEach(sub => {
+      if (sub.status === 'ACCEPTED' && (!user || sub.userId === user.id)) {
+        solved.add(sub.problemId)
+      }
+    })
+    return solved
+  }, [submissions, user])
+
   const fetchProblems = async () => {
     try {
-      const response = await fetch('/api/problems')
+      const response = await fetch('/api/problems', {
+        headers: user ? { 'Authorization': `Bearer ${user.token}` } : {}
+      })
       const data = await response.json()
       if (response.ok && data.code === 200) {
         setProblems(data.data)
@@ -165,6 +191,32 @@ export default function Dashboard({ user, showToast }) {
       showToast('Không thể kết nối đến máy chủ!', 'error')
     } finally {
       setGenerating(false)
+    }
+  }
+
+  const handleDelete = async (problemId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa bài tập này không? Hành động này sẽ xóa cả test cases và submissions liên quan.")) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/problems/${problemId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${user.token}`
+        }
+      })
+
+      const data = await response.json()
+      if (response.ok && data.code === 200) {
+        showToast('Xóa bài tập thành công!')
+        fetchProblems() // Refresh problems list
+        fetchSubmissions() // Refresh submissions list
+      } else {
+        showToast(data.message || 'Lỗi khi xóa bài tập!', 'error')
+      }
+    } catch (err) {
+      showToast('Không thể kết nối đến máy chủ để xóa!', 'error')
     }
   }
 
@@ -261,6 +313,55 @@ export default function Dashboard({ user, showToast }) {
             <BookOpen size={20} style={{ color: '#3b82f6' }} />
             Danh sách bài tập
           </h2>
+          {user && (
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
+              <button 
+                onClick={() => setActiveFilter('ALL')}
+                className="btn"
+                style={{ 
+                  padding: '0.4rem 0.85rem', 
+                  fontSize: '0.8rem', 
+                  borderRadius: '6px',
+                  background: activeFilter === 'ALL' ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'rgba(255, 255, 255, 0.05)',
+                  border: activeFilter === 'ALL' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                  color: activeFilter === 'ALL' ? '#ffffff' : 'var(--text-muted)',
+                  cursor: 'pointer'
+                }}
+              >
+                Tất cả
+              </button>
+              <button 
+                onClick={() => setActiveFilter('AC')}
+                className="btn"
+                style={{ 
+                  padding: '0.4rem 0.85rem', 
+                  fontSize: '0.8rem', 
+                  borderRadius: '6px',
+                  background: activeFilter === 'AC' ? 'linear-gradient(135deg, #10b981, #047857)' : 'rgba(255, 255, 255, 0.05)',
+                  border: activeFilter === 'AC' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                  color: activeFilter === 'AC' ? '#ffffff' : 'var(--text-muted)',
+                  cursor: 'pointer'
+                }}
+              >
+                Đã AC ({solvedProblemIds.size})
+              </button>
+              <button 
+                onClick={() => setActiveFilter('UNSOLVED')}
+                className="btn"
+                style={{ 
+                  padding: '0.4rem 0.85rem', 
+                  fontSize: '0.8rem', 
+                  borderRadius: '6px',
+                  background: activeFilter === 'UNSOLVED' ? 'linear-gradient(135deg, #f59e0b, #b45309)' : 'rgba(255, 255, 255, 0.05)',
+                  border: activeFilter === 'UNSOLVED' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                  color: activeFilter === 'UNSOLVED' ? '#ffffff' : 'var(--text-muted)',
+                  cursor: 'pointer'
+                }}
+              >
+                Chưa giải
+              </button>
+            </div>
+          )}
           {loadingProblems ? (
             <p style={{ color: 'var(--text-muted)' }}>Đang tải đề bài...</p>
           ) : Object.keys(groupedProblems).length === 0 ? (
@@ -311,7 +412,14 @@ export default function Dashboard({ user, showToast }) {
                           <tbody>
                             {topicProbs.map((prob) => (
                               <tr key={prob.id}>
-                                <td style={{ fontWeight: 600 }}>{prob.title}</td>
+                                <td style={{ fontWeight: 600 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    {solvedProblemIds.has(prob.id) && (
+                                      <CheckCircle2 size={16} style={{ color: '#10b981', flexShrink: 0 }} title="Đã giải thành công" />
+                                    )}
+                                    {prob.title}
+                                  </div>
+                                </td>
                                 <td>
                                   <span className={`difficulty-badge diff-${(prob.difficulty || 'medium').toLowerCase()}`} style={{
                                     display: 'inline-block',
@@ -327,10 +435,22 @@ export default function Dashboard({ user, showToast }) {
                                   </span>
                                 </td>
                                 <td>
-                                  <Link to={`/problem/${prob.id}`} className="btn btn-primary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>
-                                    <Play size={12} />
-                                    Làm bài
-                                  </Link>
+                                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                    <Link to={`/problem/${prob.id}`} className="btn btn-primary" style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem' }}>
+                                      <Play size={12} />
+                                      Làm bài
+                                    </Link>
+                                    {user && (
+                                      <button 
+                                        className="btn btn-secondary" 
+                                        onClick={() => handleDelete(prob.id)} 
+                                        style={{ padding: '0.35rem 0.5rem', borderColor: 'rgba(239, 68, 68, 0.3)', color: '#ef4444', background: 'transparent' }}
+                                        title="Xóa bài tập"
+                                      >
+                                        <Trash2 size={12} />
+                                      </button>
+                                    )}
+                                  </div>
                                 </td>
                               </tr>
                             ))}

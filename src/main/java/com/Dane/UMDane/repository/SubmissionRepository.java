@@ -7,4 +7,5 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Repository
 public interface SubmissionRepository extends JpaRepository<Submission, Long> {
+    void deleteByProblemId(Long problemId);
 }

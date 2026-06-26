@@ -5,8 +5,11 @@ import com.Dane.UMDane.entity.Problem;
 import com.Dane.UMDane.entity.TestCase;
 import com.Dane.UMDane.repository.ProblemRepository;
 import com.Dane.UMDane.repository.TestCaseRepository;
+import com.Dane.UMDane.repository.SubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.Dane.UMDane.entity.UserDeletedProblem;
+import com.Dane.UMDane.repository.UserDeletedProblemRepository;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,11 +24,20 @@ import java.util.Random;
 public class ProblemService {
     private final ProblemRepository problemRepository;
     private final TestCaseRepository testCaseRepository;
+    private final SubmissionRepository submissionRepository;
+    private final UserDeletedProblemRepository userDeletedProblemRepository;
     private final GeminiAiService geminiAiService;
     private final Random random = new Random();
 
-    public List<ProblemResponseDTO> getAllProblems() {
-        return problemRepository.findAll().stream()
+    public List<ProblemResponseDTO> getAllProblems(Long userId) {
+        List<Problem> problems = problemRepository.findAll();
+        if (userId != null) {
+            List<Long> deletedProblemIds = userDeletedProblemRepository.findProblemIdsByUserId(userId);
+            problems = problems.stream()
+                    .filter(p -> !deletedProblemIds.contains(p.getId()))
+                    .toList();
+        }
+        return problems.stream()
                 .map(this::mapToDTO)
                 .toList();
     }
@@ -65,12 +77,12 @@ public class ProblemService {
                             .build());
                 }
             } catch (Exception e) {
-                log.error("AI generation failed, falling back to mock generator", e);
-                return generateMockProblem(topic, keyword, normalizedDifficulty);
+                log.error("AI generation failed", e);
+                throw new RuntimeException("AI gặp lỗi khi thiết kế đề bài: " + e.getMessage());
             }
         } else {
-            log.info("Chưa cấu hình Gemini API Key. Sử dụng generator offline làm fallback.");
-            return generateMockProblem(topic, keyword, normalizedDifficulty);
+            log.warn("Chưa cấu hình Gemini API Key.");
+            throw new RuntimeException("Hệ thống chưa cấu hình Gemini API Key để sinh đề bài bằng AI!");
         }
 
         Problem problem = Problem.builder()
@@ -89,6 +101,26 @@ public class ProblemService {
         }
 
         return mapToDTO(problem);
+    }
+
+    @Transactional
+    public void deleteProblem(Long id) {
+        log.info("Đang xóa bài tập ID={} (và cascade xóa test cases, submissions)...", id);
+        testCaseRepository.deleteByProblemId(id);
+        submissionRepository.deleteByProblemId(id);
+        problemRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void hideProblemForUser(Long userId, Long problemId) {
+        log.info("Ẩn bài tập ID={} đối với User ID={}...", problemId, userId);
+        if (!userDeletedProblemRepository.existsByUserIdAndProblemId(userId, problemId)) {
+            UserDeletedProblem udp = UserDeletedProblem.builder()
+                    .userId(userId)
+                    .problemId(problemId)
+                    .build();
+            userDeletedProblemRepository.save(udp);
+        }
     }
 
     private ProblemResponseDTO generateMockProblem(String topic, String keyword, String difficulty) {

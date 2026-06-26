@@ -6,6 +6,10 @@ import com.Dane.UMDane.service.ProblemService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.context.SecurityContextHolder;
+import com.Dane.UMDane.security.UserPrincipal;
+
+import java.util.List;
 
 import java.util.List;
 
@@ -18,7 +22,16 @@ public class ProblemController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ProblemResponseDTO>>> getAllProblems() {
-        List<ProblemResponseDTO> problems = problemService.getAllProblems();
+        Long userId = null;
+        try {
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (principal instanceof UserPrincipal) {
+                userId = ((UserPrincipal) principal).getId();
+            }
+        } catch (Exception e) {
+            // Not authenticated
+        }
+        List<ProblemResponseDTO> problems = problemService.getAllProblems(userId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài toán thành công!", problems));
     }
 
@@ -43,5 +56,20 @@ public class ProblemController {
             @RequestParam(defaultValue = "MEDIUM") String difficulty) {
         ProblemResponseDTO problem = problemService.generateProblem(topic, keyword, difficulty);
         return ResponseEntity.ok(ApiResponse.success("Tạo bài toán ngẫu nhiên thành công!", problem));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteProblem(@PathVariable Long id) {
+        Long userId = null;
+        try {
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (principal instanceof UserPrincipal) {
+                userId = ((UserPrincipal) principal).getId();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("Bạn cần đăng nhập để thực hiện chức năng này!");
+        }
+        problemService.hideProblemForUser(userId, id);
+        return ResponseEntity.ok(ApiResponse.success("Xóa bài tập thành công!", null));
     }
 }
