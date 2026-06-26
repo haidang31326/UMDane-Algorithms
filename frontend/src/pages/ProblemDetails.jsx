@@ -212,8 +212,34 @@ public class Solution {
             </span>
           </div>
 
+          <div style={{ display: 'flex', gap: '1.25rem', marginBottom: '1.5rem', fontSize: '0.85rem', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.75rem' }}>
+            <div>
+              <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Thời gian chạy tối đa:</span> {problem.timeLimit ? (problem.timeLimit / 1000).toFixed(1) : '2.0'}s
+            </div>
+            <div>
+              <span style={{ fontWeight: 600, color: 'var(--text-main)' }}>Giới hạn bộ nhớ:</span> {problem.memoryLimit || '128'}MB
+            </div>
+          </div>
+
           <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Mô tả bài toán</h3>
-          <div className="problem-desc-text">{problem.description}</div>
+          <div className="problem-desc-text" style={{ marginBottom: '1.5rem' }}>{problem.description}</div>
+
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.5rem', color: 'var(--text-muted)' }}>Ràng buộc (Constraints)</h3>
+          <div 
+            className="glass-panel" 
+            style={{ 
+              padding: '1rem', 
+              fontFamily: 'var(--font-mono)', 
+              fontSize: '0.85rem', 
+              color: '#a7f3d0', 
+              background: 'rgba(16, 185, 129, 0.02)', 
+              borderColor: 'rgba(16, 185, 129, 0.15)',
+              whiteSpace: 'pre-wrap',
+              marginBottom: '1.5rem'
+            }}
+          >
+            {problem.constraints || 'Không có ràng buộc đặc biệt nào.'}
+          </div>
 
           {problem.hint && (
             <div style={{ marginTop: '2rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>

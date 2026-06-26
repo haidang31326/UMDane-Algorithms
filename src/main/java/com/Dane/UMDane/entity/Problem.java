@@ -33,7 +33,19 @@ public class Problem {
     private String hint;
 
     @Column(nullable = false, length = 20)
+    @Builder.Default
     private String difficulty = "MEDIUM";
+
+    @Column(columnDefinition = "TEXT")
+    private String constraints;
+
+    @Column(name = "time_limit", nullable = false)
+    @Builder.Default
+    private Integer timeLimit = 2000;
+
+    @Column(name = "memory_limit", nullable = false)
+    @Builder.Default
+    private Integer memoryLimit = 128;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

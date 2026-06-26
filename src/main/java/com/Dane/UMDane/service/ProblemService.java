@@ -57,6 +57,9 @@ public class ProblemService {
         String title;
         String description;
         String hint;
+        String constraints = null;
+        Integer timeLimit = 2000;
+        Integer memoryLimit = 128;
         List<TestCase> testCases = new ArrayList<>();
         String normalizedDifficulty = (difficulty == null || difficulty.trim().isEmpty()) ? "MEDIUM" : difficulty.toUpperCase().trim();
 
@@ -68,6 +71,9 @@ public class ProblemService {
                 title = aiProb.getTitle();
                 description = aiProb.getDescription();
                 hint = aiProb.getHint();
+                constraints = aiProb.getConstraints();
+                timeLimit = aiProb.getTimeLimit();
+                memoryLimit = aiProb.getMemoryLimit();
                 
                 for (GeminiAiService.GeneratedTestCase aiTc : aiProb.getTestCases()) {
                     testCases.add(TestCase.builder()
@@ -92,6 +98,9 @@ public class ProblemService {
                 .description(description)
                 .hint(hint)
                 .difficulty(normalizedDifficulty)
+                .constraints(constraints)
+                .timeLimit(timeLimit)
+                .memoryLimit(memoryLimit)
                 .build();
         problem = problemRepository.save(problem);
 
@@ -152,6 +161,9 @@ public class ProblemService {
                 .description(description)
                 .hint(hint)
                 .difficulty(difficulty)
+                .constraints("1 <= N <= 10^5\nCác giá trị nhập vào đều hợp lệ.")
+                .timeLimit(2000)
+                .memoryLimit(128)
                 .build();
         problem = problemRepository.save(problem);
 
@@ -182,6 +194,9 @@ public class ProblemService {
                 .description(problem.getDescription())
                 .difficulty(problem.getDifficulty())
                 .hint(problem.getHint())
+                .constraints(problem.getConstraints())
+                .timeLimit(problem.getTimeLimit())
+                .memoryLimit(problem.getMemoryLimit())
                 .build();
     }
 }

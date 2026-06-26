@@ -17,4 +17,7 @@ public class ProblemResponseDTO implements Serializable {
     private String description;
     private String difficulty;
     private String hint;
+    private String constraints;
+    private Integer timeLimit;
+    private Integer memoryLimit;
 }

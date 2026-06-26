@@ -6,6 +6,7 @@ import com.Dane.UMDane.dto.SandboxResult;
 import com.Dane.UMDane.entity.Submission;
 import com.Dane.UMDane.entity.SubmissionStatus;
 import com.Dane.UMDane.entity.TestCase;
+import com.Dane.UMDane.entity.Problem;
 import com.Dane.UMDane.repository.ProblemRepository;
 import com.Dane.UMDane.repository.SubmissionRepository;
 import com.Dane.UMDane.repository.TestCaseRepository;
@@ -29,7 +30,7 @@ public class SubmissionService {
     private final SimpMessagingTemplate messagingTemplate;
 
     public Submission submitCode(CodeSubmitDTO requestDTO) {
-        problemRepository.findById(requestDTO.getProblemId())
+        Problem problem = problemRepository.findById(requestDTO.getProblemId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề bài!"));
 
         // Retrieve logged-in user id
@@ -77,7 +78,9 @@ public class SubmissionService {
             TestCase tc = testCases.get(i);
             
             // Timeout limit: 2000ms, Memory limit: 128MB
-            SandboxResult result = sandboxService.execute(requestDTO.getCode(), tc.getInputData(), 2000, 128);
+            int timeLimit = (problem.getTimeLimit() != null) ? problem.getTimeLimit() : 2000;
+            int memoryLimit = (problem.getMemoryLimit() != null) ? problem.getMemoryLimit() : 128;
+            SandboxResult result = sandboxService.execute(requestDTO.getCode(), tc.getInputData(), timeLimit, memoryLimit);
 
             if (result.getStatus() == SubmissionStatus.COMPILE_ERROR) {
                 finalStatus = SubmissionStatus.COMPILE_ERROR;
