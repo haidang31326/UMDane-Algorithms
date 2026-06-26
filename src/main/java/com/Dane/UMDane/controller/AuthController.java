@@ -51,6 +51,7 @@ public class AuthController {
         String token = tokenProvider.generateToken(user.getUsername(), user.getRole().name());
 
         AuthResponse authResponse = AuthResponse.builder()
+                .id(user.getId())
                 .token(token)
                 .username(user.getUsername())
                 .email(user.getEmail())
@@ -74,6 +75,7 @@ public class AuthController {
         String token = tokenProvider.generateToken(user.getUsername(), user.getRole().name());
 
         AuthResponse authResponse = AuthResponse.builder()
+                .id(user.getId())
                 .token(token)
                 .username(user.getUsername())
                 .email(user.getEmail())
