@@ -59,6 +59,16 @@ export default function Dashboard({ user, showToast }) {
     }))
   }
 
+  const solvedProblemIds = useMemo(() => {
+    const solved = new Set()
+    submissions.forEach(sub => {
+      if (sub.status === 'ACCEPTED' && (!user || sub.userId === user.id)) {
+        solved.add(sub.problemId)
+      }
+    })
+    return solved
+  }, [submissions, user])
+
   const filteredProblems = useMemo(() => {
     return problems.filter(prob => {
       const isSolved = solvedProblemIds.has(prob.id)
@@ -108,16 +118,6 @@ export default function Dashboard({ user, showToast }) {
     })
     return Array.from(latestMap.values())
   }, [submissions])
-
-  const solvedProblemIds = useMemo(() => {
-    const solved = new Set()
-    submissions.forEach(sub => {
-      if (sub.status === 'ACCEPTED' && (!user || sub.userId === user.id)) {
-        solved.add(sub.problemId)
-      }
-    })
-    return solved
-  }, [submissions, user])
 
   const fetchProblems = async () => {
     try {
