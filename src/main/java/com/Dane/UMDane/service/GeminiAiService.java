@@ -66,12 +66,7 @@ public class GeminiAiService {
                 "- Xác định rõ ràng các ràng buộc dữ liệu đầu vào (constraints) bằng tiếng Việt (ví dụ: '1 <= N <= 10^5', '1 <= A_i <= 10^9').\n" +
                 "- Đặt giới hạn thời gian (timeLimit tính bằng mili giây, thường là 2000) và giới hạn bộ nhớ (memoryLimit tính bằng MB, thường là 128 hoặc 256) phù hợp cho bài toán.\n" +
                 "- Thiết kế bài tập theo dạng hàm (LeetCode-style) để người dùng chỉ cần hoàn thành một hàm/class Solution mà không cần viết hàm main hay tự đọc xuất dữ liệu. Cụ thể:\n" +
-                "  1. Sinh ra 'userTemplate': Là template code khởi tạo (Java) chứa class Solution và phương thức mà người dùng cần điền code logic. Ví dụ:\n" +
-                "     class Solution {\n" +
-                "         public int[] twoSum(int[] nums, int target) {\n" +
-                "             \n" +
-                "         }\n" +
-                "     }\n" +
+                "  1. Sinh ra 'userTemplate': Chỉ chứa khai báo class Solution, tên phương thức mẫu, các tham số đầu vào, một giá trị trả về mặc định tượng trưng (ví dụ: return 0; hoặc return null; hoặc return new int[0];) và ghi chú // Code của bạn tại đây. TUYỆT ĐỐI KHÔNG được viết sẵn bất kỳ logic giải thuật hay mã nguồn giải bài tập nào vào trong 'userTemplate'.\n" +
                 "  2. Sinh ra 'driverCode': Là một chương trình Java hoàn chỉnh (public class Main) chứa hàm main. Hàm main này sẽ nhận dữ liệu từ Standard Input thông qua Scanner, phân tách/chuyển đổi dữ liệu (ví dụ đọc mảng, đọc số), khởi tạo đối tượng Solution và gọi phương thức của Solution, sau đó in kết quả ra Standard Output. Hãy đảm bảo driverCode có thể tự động chạy khớp hoàn toàn với định dạng testCases đầu vào.\n" +
                 "Sinh ra ít nhất 3 test cases hợp lệ phục vụ cho việc chấm bài của hệ thống Online Judge. Dữ liệu đầu vào của test case phải khớp với cách mô tả trong đề bài và định dạng đọc của driverCode, và đáp án expectedOutput phải chính xác hoàn toàn.",
                 difficulty, topic, keyword, difficulty
