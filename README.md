@@ -32,6 +32,84 @@ Nền tảng chấm bài trực tuyến thông minh (Online Judge) kiểu LeetCo
 
 ---
 
+## 🔄 Luồng Hoạt Động (Workflow Chấm Bài)
+
+Hệ thống hoạt động theo trình tự khép kín dưới đây để đảm bảo an toàn phần cứng và tính chính xác cao:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as Người dùng
+    participant FE as React Client
+    participant BE as Spring Boot Backend
+    participant Redis as Redis Cache
+    participant DB as MySQL DB
+    participant Docker as Docker Sandbox
+
+    User->>FE: Bấm "Nộp bài" (Submit)
+    FE->>BE: POST /api/submissions (code, problemId, token)
+    Note over BE: Xác thực JWT & Tạo Submission PENDING
+    BE->>DB: Lưu trạng thái PENDING
+    BE->>Redis: Lấy driverCode & testcases (Nếu có trong cache)
+    alt Cache miss
+        Redis-->>BE: Null
+        BE->>DB: SELECT * FROM problems & test_cases
+        DB-->>BE: Dữ liệu bài toán
+        BE->>Redis: Lưu dữ liệu vào cache
+    else Cache hit
+        Redis-->>BE: Dữ liệu bài toán
+    end
+    
+    BE->>Docker: Kích hoạt DockerSandboxService.execute()
+    Note over Docker: Tạo thư mục tạm trên host<br/>Ghi Solution.java & Main.java (Driver)
+    
+    %% Phase 1: Compile %%
+    Docker->>Docker: Tạo Container JDK (eclipse-temurin:21-alpine)
+    Docker->>Docker: Compile Main.java (javac Main.java)
+    alt Lỗi biên dịch (Compilation Error)
+        Docker-->>BE: Trả về trạng thái COMPILE_ERROR
+        BE->>DB: Cập nhật DB & Broadcast WebSocket
+        BE-->>FE: Trả kết quả lỗi biên dịch (CE)
+    end
+    
+    %% Phase 2: Run Testcases %%
+    loop Duyệt qua từng Testcase (Testcase 1 -> N)
+        Docker->>Docker: Tạo Container JRE (eclipse-temurin:21-jre-alpine)<br/>--memory 128m, --cpus 0.5, --network none
+        Docker->>Docker: Truyền inputData vào stdin
+        Docker->>Docker: Chạy chương trình (java Main) trong thời gian giới hạn (timeLimitMs)
+        alt Hết thời gian (Timeout)
+            Docker->>Docker: Force kill container
+            Docker-->>BE: TIME_LIMIT_EXCEEDED
+        else Tràn RAM / Lỗi runtime (OOM / Runtime Exception)
+            Docker-->>BE: RUNTIME_ERROR (Exit code 137 / 1)
+        else Chạy thành công
+            Docker->>Docker: So sánh stdout vs expectedOutput (Chuẩn hóa trim & line endings)
+            alt Kết quả khác nhau
+                Docker-->>BE: WRONG_ANSWER
+            else Kết quả trùng khớp
+                Docker-->>BE: ACCEPTED (cho testcase này)
+            end
+        end
+    end
+    
+    Docker-->>BE: Trả về kết quả tổng hợp cuối cùng
+    BE->>DB: Cập nhật trạng thái bài nộp (AC, WA, TLE, RE)
+    BE->>FE: Gửi WebSocket Broadcast (/topic/submissions)
+    FE-->>User: Hiển thị kết quả chấm bài trực quan trên màn hình
+```
+
+### Các bước xử lý chi tiết:
+1. **Submit Code**: Phía Frontend gửi request kèm JWT token xác thực và payload chứa bài làm của bạn.
+2. **Khởi tạo & Caching**: Backend lưu bản ghi trạng thái `PENDING` vào database MySQL, sau đó tìm kiếm mã nguồn driver và tập testcases của bài toán tương ứng trong Redis (nếu chưa có thì chọc xuống DB và lưu vào cache).
+3. **Môi trường biên dịch**: Sandbox ghi hai tệp `Solution.java` (mã của bạn) và `Main.java` (mã chạy driver nhận dữ liệu testcase) ra thư mục tạm. Khởi chạy container JDK để biên dịch cả hai.
+4. **Vòng lặp chấm điểm**: Chạy từng testcase bên trong một JRE Container bị khóa mạng (`--network none`), giới hạn bộ nhớ RAM và CPU. Dữ liệu input được truyền trực tiếp vào cổng đầu vào chuẩn `stdin`.
+5. **Xử lý Test Case ẩn**:
+   - Nếu chương trình bị sai kết quả hoặc lỗi ở testcase công khai: hiển thị chi tiết mã lỗi để người dùng sửa.
+   - Nếu lỗi xuất hiện ở testcase ẩn (`isHidden: true`): Ẩn toàn bộ đầu vào/đầu ra nhạy cảm để chống gian lận và hiển thị thông báo hướng dẫn sửa lỗi biên (Edge Cases).
+6. **Cập nhật Trạng thái**: Khi có kết quả (tất cả các testcase đạt `ACCEPTED` hoặc phát hiện lỗi đầu tiên), Backend ghi nhận lại hiệu năng chạy (`runtimeMs`), cập nhật vào Database và đẩy tin nhắn thời gian thực về Dashboard qua **WebSocket**.
+
+---
+
 ## 🛠️ Công nghệ sử dụng
 
 ### 1. Backend
@@ -91,7 +169,7 @@ Sau khi container chạy hoàn tất, bạn truy cập giao diện tại địa 
 │   ├── db/migration/        # Tệp sql định nghĩa cơ sở dữ liệu nâng cấp qua Flyway
 │   └── application.yml      # Tệp cấu hình cấu trúc hệ thống Spring Boot
 ├── frontend/
-│   ├── src/                 # Mã nguồn giao diện React (pages, components, css)
+│   ├── src/                 # Giao diện React (pages, components, css)
 │   ├── package.json         # Danh sách thư viện frontend
 │   └── vite.config.js       # Cấu hình máy chủ Dev và Proxy API
 ├── docker-compose.yml       # Docker cấu hình chạy đa container
