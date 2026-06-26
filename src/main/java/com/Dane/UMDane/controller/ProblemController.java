@@ -67,8 +67,14 @@ public class ProblemController {
                 userId = ((UserPrincipal) principal).getId();
             }
         } catch (Exception e) {
-            throw new RuntimeException("Bạn cần đăng nhập để thực hiện chức năng này!");
+            // Ignore
         }
+
+        if (userId == null) {
+            return ResponseEntity.status(401)
+                    .body(new ApiResponse<>(401, "Bạn cần đăng nhập để thực hiện chức năng này!", null));
+        }
+
         problemService.hideProblemForUser(userId, id);
         return ResponseEntity.ok(ApiResponse.success("Xóa bài tập thành công!", null));
     }
