@@ -3,6 +3,41 @@ import { useParams, Link } from 'react-router-dom'
 import Editor from '@monaco-editor/react'
 import { Play, ArrowLeft, Lightbulb, HelpCircle, Terminal } from 'lucide-react'
 
+const getNormalizedTopicName = (rawTopic) => {
+  if (!rawTopic) return 'Khác';
+  const clean = rawTopic.trim().toLowerCase();
+
+  // Mapping rules
+  if (clean.includes('array') || clean.includes('mảng') || clean.includes('list')) {
+    return 'Array';
+  }
+  if (clean.includes('greedy') || clean.includes('tham lam')) {
+    return 'Greedy';
+  }
+  if (clean.includes('dynamic') || clean.includes('programming') || clean === 'dp' || clean.includes('quy hoạch động')) {
+    return 'Dynamic Programming';
+  }
+  if (clean.includes('graph') || clean.includes('tree') || clean.includes('đồ thị') || clean.includes('cây')) {
+    return 'Graph & Tree';
+  }
+  if (clean.includes('math') || clean.includes('toán') || clean.includes('number') || clean.includes('prime')) {
+    return 'Mathematics';
+  }
+  if (clean.includes('string') || clean.includes('chuỗi') || clean.includes('xâu')) {
+    return 'String';
+  }
+  if (clean.includes('sort') || clean.includes('search') || clean.includes('sắp xếp') || clean.includes('tìm kiếm')) {
+    return 'Sorting & Searching';
+  }
+
+  // Default pretty casing: Capitalize First Letter of Each Word
+  return rawTopic
+    .trim()
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 export default function ProblemDetails({ user, showToast }) {
   const { id } = useParams()
   const [problem, setProblem] = useState(null)
@@ -153,7 +188,7 @@ public class Solution {
         <div className="glass-panel problem-description">
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem' }}>{problem.title}</h1>
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', alignItems: 'center' }}>
-            <span className="topic-badge">{problem.topic}</span>
+            <span className="topic-badge">{getNormalizedTopicName(problem.topic)}</span>
             <span className="topic-badge" style={{ background: 'rgba(6, 182, 212, 0.1)', color: '#22d3ee', borderColor: 'rgba(6, 182, 212, 0.2)' }}>
               {problem.keyword}
             </span>

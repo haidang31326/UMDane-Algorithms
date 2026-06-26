@@ -2,6 +2,41 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Play, ClipboardList, BookOpen, Sparkles, ChevronDown, ChevronUp } from 'lucide-react'
 
+const getNormalizedTopicName = (rawTopic) => {
+  if (!rawTopic) return 'Khác';
+  const clean = rawTopic.trim().toLowerCase();
+
+  // Mapping rules
+  if (clean.includes('array') || clean.includes('mảng') || clean.includes('list')) {
+    return 'Array';
+  }
+  if (clean.includes('greedy') || clean.includes('tham lam')) {
+    return 'Greedy';
+  }
+  if (clean.includes('dynamic') || clean.includes('programming') || clean === 'dp' || clean.includes('quy hoạch động')) {
+    return 'Dynamic Programming';
+  }
+  if (clean.includes('graph') || clean.includes('tree') || clean.includes('đồ thị') || clean.includes('cây')) {
+    return 'Graph & Tree';
+  }
+  if (clean.includes('math') || clean.includes('toán') || clean.includes('number') || clean.includes('prime')) {
+    return 'Mathematics';
+  }
+  if (clean.includes('string') || clean.includes('chuỗi') || clean.includes('xâu')) {
+    return 'String';
+  }
+  if (clean.includes('sort') || clean.includes('search') || clean.includes('sắp xếp') || clean.includes('tìm kiếm')) {
+    return 'Sorting & Searching';
+  }
+
+  // Default pretty casing: Capitalize First Letter of Each Word
+  return rawTopic
+    .trim()
+    .split(/\s+/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
+
 export default function Dashboard({ user, showToast }) {
   const [problems, setProblems] = useState([])
   const [submissions, setSubmissions] = useState([])
@@ -25,7 +60,7 @@ export default function Dashboard({ user, showToast }) {
 
   const groupedProblems = useMemo(() => {
     const groups = problems.reduce((acc, prob) => {
-      const t = prob.topic || 'Khác'
+      const t = getNormalizedTopicName(prob.topic)
       if (!acc[t]) {
         acc[t] = []
       }
