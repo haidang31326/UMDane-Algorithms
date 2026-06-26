@@ -68,7 +68,13 @@ public class Solution {
         if (response.ok) {
           const data = await response.json()
           setProblem(data)
-          setCode(defaultTemplate)
+          const draftKey = `umdane_draft_${user ? user.id : 'anon'}_${id}`
+          const savedDraft = localStorage.getItem(draftKey)
+          if (savedDraft) {
+            setCode(savedDraft)
+          } else {
+            setCode(defaultTemplate)
+          }
         } else {
           showToast('Không tìm thấy bài tập!', 'error')
         }
@@ -271,7 +277,12 @@ public class Solution {
               defaultLanguage="java"
               theme="vs-dark"
               value={code}
-              onChange={(value) => setCode(value || '')}
+              onChange={(value) => {
+                const val = value || ''
+                setCode(val)
+                const draftKey = `umdane_draft_${user ? user.id : 'anon'}_${id}`
+                localStorage.setItem(draftKey, val)
+              }}
               options={{
                 fontSize: 14,
                 minimap: { enabled: false },

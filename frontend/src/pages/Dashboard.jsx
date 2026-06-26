@@ -84,6 +84,17 @@ export default function Dashboard({ user, showToast }) {
     return groups
   }, [problems])
 
+  const uniqueSubmissions = useMemo(() => {
+    const latestMap = new Map()
+    // submissions is sorted desc (latest first)
+    submissions.forEach(sub => {
+      if (!latestMap.has(sub.problemId)) {
+        latestMap.set(sub.problemId, sub)
+      }
+    })
+    return Array.from(latestMap.values())
+  }, [submissions])
+
   const fetchProblems = async () => {
     try {
       const response = await fetch('/api/problems')
@@ -342,7 +353,7 @@ export default function Dashboard({ user, showToast }) {
           </h2>
           {loadingSubmissions ? (
             <p style={{ color: 'var(--text-muted)' }}>Đang tải trạng thái...</p>
-          ) : submissions.length === 0 ? (
+          ) : uniqueSubmissions.length === 0 ? (
             <p style={{ color: 'var(--text-muted)' }}>Chưa có bài nộp nào trên hệ thống.</p>
           ) : (
             <div style={{ overflowX: 'auto' }}>
@@ -356,7 +367,7 @@ export default function Dashboard({ user, showToast }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {submissions.slice(0, 10).map((sub) => (
+                  {uniqueSubmissions.slice(0, 10).map((sub) => (
                     <tr key={sub.id}>
                       <td>
                         <Link to={`/problem/${sub.problemId}`} style={{ color: 'var(--text-main)', textDecoration: 'none', fontWeight: 600 }}>
