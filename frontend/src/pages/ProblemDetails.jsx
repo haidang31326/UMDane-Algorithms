@@ -103,10 +103,34 @@ public class Solution {
     }
   }
 
+  const formatJavaCodeAndComments = (rawCode) => {
+    if (!rawCode) return "";
+    const lines = rawCode.split("\n");
+    const formattedLines = lines.map(line => {
+      // 1. Format single-line comments (ensure space after //)
+      let formatted = line.replace(/(^|[^:])\/\/([^\s/])/g, '$1// $2');
+      
+      // 2. Format block comment lines starting with '*' (ensure space after *)
+      formatted = formatted.replace(/^(\s*\*)\s*([^\s*/])/g, '$1 $2');
+      
+      return formatted;
+    });
+    return formattedLines.join("\n");
+  };
+
   const handleFormat = () => {
     if (editorRef) {
-      editorRef.getAction('editor.action.formatDocument').run()
-      showToast('Đã định dạng code thành công!')
+      const currentCode = editorRef.getValue()
+      const commentFormattedCode = formatJavaCodeAndComments(currentCode)
+      setCode(commentFormattedCode)
+      
+      // Give React a small tick to update the state before running Monaco's formatter
+      setTimeout(() => {
+        if (editorRef) {
+          editorRef.getAction('editor.action.formatDocument').run()
+        }
+      }, 50)
+      showToast('Đã định dạng code và bình luận thành công!')
     } else {
       showToast('Không thể định dạng code tại thời điểm này!', 'error')
     }
