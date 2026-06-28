@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import Editor from '@monaco-editor/react'
-import { Play, ArrowLeft, Lightbulb, HelpCircle, Terminal } from 'lucide-react'
+import { Play, ArrowLeft, Lightbulb, HelpCircle, Terminal, RotateCcw, Sparkles } from 'lucide-react'
 
 const getNormalizedTopicName = (rawTopic) => {
   if (!rawTopic) return 'Khác';
@@ -50,6 +50,7 @@ export default function ProblemDetails({ user, showToast }) {
   const [runInput, setRunInput] = useState('')
   const [runResult, setRunResult] = useState(null)
   const [showConsole, setShowConsole] = useState(false)
+  const [editorRef, setEditorRef] = useState(null)
 
   const defaultTemplate = `import java.util.Scanner;
 
@@ -90,6 +91,26 @@ public class Solution {
 
     fetchProblem()
   }, [id])
+
+  const handleReset = () => {
+    if (!problem) return
+    if (window.confirm('Bạn có chắc chắn muốn đặt lại code về trạng thái ban đầu không?')) {
+      const initialTemplate = problem.userTemplate ? problem.userTemplate : defaultTemplate
+      setCode(initialTemplate)
+      const draftKey = `umdane_draft_${user ? user.id : 'anon'}_${id}`
+      localStorage.removeItem(draftKey)
+      showToast('Đã đặt lại code về trạng thái mặc định!')
+    }
+  }
+
+  const handleFormat = () => {
+    if (editorRef) {
+      editorRef.getAction('editor.action.formatDocument').run()
+      showToast('Đã định dạng code thành công!')
+    } else {
+      showToast('Không thể định dạng code tại thời điểm này!', 'error')
+    }
+  }
 
   const handleSubmit = async () => {
     if (!user) {
@@ -283,6 +304,26 @@ public class Solution {
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button 
                 className="btn btn-secondary" 
+                onClick={handleFormat} 
+                disabled={running || submitting}
+                title="Định dạng code (Format)"
+                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', borderColor: 'var(--border-color)', background: 'transparent', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <Sparkles size={12} style={{ color: '#c084fc' }} />
+                <span>Định dạng</span>
+              </button>
+              <button 
+                className="btn btn-secondary" 
+                onClick={handleReset} 
+                disabled={running || submitting}
+                title="Đặt lại code ban đầu (Reset)"
+                style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', borderColor: 'var(--border-color)', background: 'transparent', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <RotateCcw size={12} style={{ color: '#ef4444' }} />
+                <span>Đặt lại</span>
+              </button>
+              <button 
+                className="btn btn-secondary" 
                 onClick={handleRun} 
                 disabled={running || submitting} 
                 style={{ padding: '0.4rem 1rem', fontSize: '0.85rem', borderColor: 'var(--border-color)', background: 'transparent', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
@@ -312,6 +353,9 @@ public class Solution {
                 setCode(val)
                 const draftKey = `umdane_draft_${user ? user.id : 'anon'}_${id}`
                 localStorage.setItem(draftKey, val)
+              }}
+              onMount={(editor) => {
+                setEditorRef(editor)
               }}
               options={{
                 fontSize: 14,
