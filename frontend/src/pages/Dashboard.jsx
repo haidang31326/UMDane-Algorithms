@@ -46,8 +46,8 @@ export default function Dashboard({ user, showToast }) {
   const [searchTerm, setSearchTerm] = useState('')
 
   // AI Generator state
-  const [topic, setTopic] = useState('Greedy')
-  const [keyword, setKeyword] = useState('tiktok')
+  const [topic, setTopic] = useState('')
+  const [keyword, setKeyword] = useState('')
   const [difficulty, setDifficulty] = useState('MEDIUM')
   const [generating, setGenerating] = useState(false)
 

@@ -17,13 +17,22 @@ export default function Navbar({ user, onLogout }) {
         >
           Bài tập
         </NavLink>
+
+        {user && (
+          <NavLink 
+            to="/profile" 
+            className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+          >
+            Trang cá nhân
+          </NavLink>
+        )}
         
         {user ? (
           <div className="user-profile">
-            <span className="user-tag">
+            <Link to="/profile" className="user-tag" style={{ textDecoration: 'none', cursor: 'pointer' }}>
               {user.username}
               <span className="role-badge">{user.role}</span>
-            </span>
+            </Link>
             <button className="btn btn-secondary" onClick={onLogout} style={{ padding: '0.4rem 0.8rem' }}>
               <LogOut size={16} />
               Đăng xuất

@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard.jsx'
 import ProblemDetails from './pages/ProblemDetails.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
+import Profile from './pages/Profile.jsx'
 
 export default function App() {
   const [user, setUser] = useState(null)
@@ -57,6 +58,10 @@ export default function App() {
             <Route 
               path="/dashboard" 
               element={<Dashboard user={user} showToast={showToast} />} 
+            />
+            <Route 
+              path="/profile" 
+              element={user ? <Profile user={user} showToast={showToast} /> : <Navigate to="/login" />} 
             />
             <Route 
               path="/problem/:id" 
