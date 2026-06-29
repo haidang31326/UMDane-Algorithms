@@ -321,8 +321,16 @@ public class DockerSandboxService {
     }
 
     private String extractClassName(String code) {
-        Pattern pattern = Pattern.compile("class\\s+([A-Za-z0-9_]+)");
-        Matcher matcher = pattern.matcher(code);
+        // First, check for public class to match Java file naming convention
+        Pattern publicClassPattern = Pattern.compile("public\\s+class\\s+([A-Za-z0-9_]+)");
+        Matcher publicMatcher = publicClassPattern.matcher(code);
+        if (publicMatcher.find()) {
+            return publicMatcher.group(1);
+        }
+
+        // Fallback to the first class declared
+        Pattern classPattern = Pattern.compile("class\\s+([A-Za-z0-9_]+)");
+        Matcher matcher = classPattern.matcher(code);
         if (matcher.find()) {
             return matcher.group(1);
         }
