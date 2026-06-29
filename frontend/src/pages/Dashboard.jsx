@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { Play, ClipboardList, BookOpen, Sparkles, ChevronDown, ChevronUp, CheckCircle2, Trash2 } from 'lucide-react'
+import { Play, ClipboardList, BookOpen, Sparkles, ChevronDown, ChevronUp, CheckCircle2, Trash2, Shuffle } from 'lucide-react'
 
 const getNormalizedTopicName = (rawTopic) => {
   if (!rawTopic) return 'Khác';
@@ -173,15 +173,62 @@ export default function Dashboard({ user, showToast }) {
     return () => clearInterval(interval)
   }, [user])
 
-  const handleGenerate = async () => {
-    if (!topic.trim() || !keyword.trim()) {
+  const RANDOM_TOPICS = [
+    'Greedy', 
+    'Dynamic Programming', 
+    'Array', 
+    'String', 
+    'Graph & Tree', 
+    'Mathematics', 
+    'Sorting & Searching', 
+    'Hash Table', 
+    'Binary Search', 
+    'Sliding Window', 
+    'Two Pointers', 
+    'Stack & Queue',
+    'Recursion',
+    'Bit Manipulation'
+  ];
+
+  const RANDOM_KEYWORDS = [
+    'TikTok',
+    'Grab',
+    'Shopee',
+    'Netflix',
+    'Spotify',
+    'SpaceX',
+    'NASA',
+    'Tesla',
+    'Facebook',
+    'Instagram',
+    'Youtube',
+    'ChatGPT',
+    'Minecraft',
+    'League of Legends',
+    'Valorant',
+    'FIFA World Cup',
+    'Apple Store',
+    'Google Maps',
+    'Steam Game',
+    'Tiki',
+    'Garena',
+    'Momo',
+    'Binance',
+    'Lazada'
+  ];
+
+  const handleGenerate = async (optTopic, optKeyword) => {
+    const finalTopic = optTopic || topic;
+    const finalKeyword = optKeyword || keyword;
+
+    if (!finalTopic.trim() || !finalKeyword.trim()) {
       showToast('Vui lòng nhập đầy đủ chủ đề và từ khóa!', 'error')
       return
     }
 
     setGenerating(true)
     try {
-      const response = await fetch(`/api/problems/generate?topic=${encodeURIComponent(topic)}&keyword=${encodeURIComponent(keyword)}&difficulty=${encodeURIComponent(difficulty)}`, {
+      const response = await fetch(`/api/problems/generate?topic=${encodeURIComponent(finalTopic)}&keyword=${encodeURIComponent(finalKeyword)}&difficulty=${encodeURIComponent(difficulty)}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${user.token}`
@@ -201,6 +248,17 @@ export default function Dashboard({ user, showToast }) {
       setGenerating(false)
     }
   }
+
+  const handleRandomGenerate = () => {
+    const randTopic = RANDOM_TOPICS[Math.floor(Math.random() * RANDOM_TOPICS.length)];
+    const randKeyword = RANDOM_KEYWORDS[Math.floor(Math.random() * RANDOM_KEYWORDS.length)];
+    
+    setTopic(randTopic);
+    setKeyword(randKeyword);
+    
+    // Trigger generation immediately
+    handleGenerate(randTopic, randKeyword);
+  };
 
   const handleDelete = async (problemId) => {
     if (!window.confirm("Bạn có chắc chắn muốn xóa bài tập này không? Hành động này sẽ xóa cả test cases và submissions liên quan.")) {
@@ -298,8 +356,28 @@ export default function Dashboard({ user, showToast }) {
               </select>
             </div>
             <button 
+              className="btn btn-secondary" 
+              onClick={handleRandomGenerate} 
+              disabled={generating}
+              style={{ 
+                height: '42px', 
+                borderColor: '#10b981',
+                color: '#10b981',
+                background: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0 1.25rem',
+                fontSize: '0.85rem'
+              }}
+              title="AI tự chọn Topic và Keyword ngẫu nhiên dựa trên độ khó đã chọn"
+            >
+              <Shuffle size={14} />
+              {generating ? 'Đang tạo...' : 'Sinh ngẫu nhiên'}
+            </button>
+            <button 
               className="btn btn-primary" 
-              onClick={handleGenerate} 
+              onClick={() => handleGenerate()} 
               disabled={generating}
               style={{ 
                 height: '42px', 
