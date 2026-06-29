@@ -69,7 +69,10 @@ public class ProblemService {
         if (geminiAiService.isApiKeyConfigured()) {
             try {
                 log.info("Đang gọi Gemini AI để sinh đề bài: topic={}, keyword={}, difficulty={}", topic, keyword, normalizedDifficulty);
-                GeminiAiService.GeneratedProblem aiProb = geminiAiService.generateProblemFromAi(topic, keyword, normalizedDifficulty);
+                List<String> existingTitles = problemRepository.findAll().stream()
+                        .map(Problem::getTitle)
+                        .toList();
+                GeminiAiService.GeneratedProblem aiProb = geminiAiService.generateProblemFromAi(topic, keyword, normalizedDifficulty, existingTitles);
                 
                 title = aiProb.getTitle();
                 description = aiProb.getDescription();

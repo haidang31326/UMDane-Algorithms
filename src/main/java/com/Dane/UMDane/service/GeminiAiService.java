@@ -47,6 +47,10 @@ public class GeminiAiService {
     }
 
     public GeneratedProblem generateProblemFromAi(String topic, String keyword, String difficulty) {
+        return generateProblemFromAi(topic, keyword, difficulty, List.of());
+    }
+
+    public GeneratedProblem generateProblemFromAi(String topic, String keyword, String difficulty, List<String> existingTitles) {
         if (!isApiKeyConfigured()) {
             throw new IllegalStateException("Gemini API key is not configured.");
         }
@@ -55,7 +59,7 @@ public class GeminiAiService {
         // Switch back to gemini-2.5-flash due to 503 high demand on 3.5-flash
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + cleanedKey;
 
-        String prompt = String.format(
+        StringBuilder promptBuilder = new StringBuilder(String.format(
                 "Hãy biên soạn một bài tập lập trình competitive programming với độ khó '%s' bằng tiếng Việt cho chủ đề: '%s' và bối cảnh/từ khóa: '%s'.\n" +
                 "Yêu cầu đề bài phải có tiêu đề, mô tả chi tiết, hướng dẫn đọc dữ liệu đầu vào (Standard Input) và in kết quả ra màn hình (Standard Output).\n" +
                 "Độ khó '%s' yêu cầu:\n" +
@@ -70,7 +74,17 @@ public class GeminiAiService {
                 "  2. Sinh ra 'driverCode': Là một chương trình Java hoàn chỉnh (public class Main) chứa hàm main. Hàm main này sẽ nhận dữ liệu từ Standard Input thông qua Scanner, phân tách/chuyển đổi dữ liệu (ví dụ đọc mảng, đọc số), khởi tạo đối tượng Solution và gọi phương thức của Solution, sau đó in kết quả ra Standard Output. Hãy đảm bảo driverCode có thể tự động chạy khớp hoàn toàn với định dạng testCases đầu vào.\n" +
                 "Sinh ra từ 3 đến 5 test cases hợp lệ phục vụ cho việc chấm bài. Trong đó, hãy thiết kế ít nhất 1-2 test cases đặc biệt đại diện cho dữ liệu biên hoặc trường hợp góc (Edge Cases như đầu vào bằng rỗng, giá trị biên cực đại/cực tiểu, hoặc trùng lặp...) và đặt 'isHidden': true để ẩn chúng đi, còn các test cases bình thường khác thì để 'isHidden': false.",
                 difficulty, topic, keyword, difficulty
-        );
+        ));
+
+        if (existingTitles != null && !existingTitles.isEmpty()) {
+            promptBuilder.append("\n\nLƯU Ý QUAN TRỌNG: Để tránh trùng lặp nội dung, TUYỆT ĐỐI KHÔNG sinh ra bài tập có tiêu đề hoặc nội dung trùng lặp/tương tự với danh sách các bài tập đã tồn tại sau đây:\n");
+            for (String title : existingTitles) {
+                promptBuilder.append("- ").append(title).append("\n");
+            }
+            promptBuilder.append("Hãy tạo ra một bài tập có bài toán và câu chuyện hoàn toàn mới lạ khác biệt.");
+        }
+
+        String prompt = promptBuilder.toString();
 
         try {
             // Build Gemini payload with structured JSON output schema

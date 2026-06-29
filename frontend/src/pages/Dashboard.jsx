@@ -43,6 +43,7 @@ export default function Dashboard({ user, showToast }) {
   const [loadingProblems, setLoadingProblems] = useState(true)
   const [loadingSubmissions, setLoadingSubmissions] = useState(true)
   const [activeFilter, setActiveFilter] = useState('ALL')
+  const [searchTerm, setSearchTerm] = useState('')
 
   // AI Generator state
   const [topic, setTopic] = useState('Greedy')
@@ -72,15 +73,22 @@ export default function Dashboard({ user, showToast }) {
   const filteredProblems = useMemo(() => {
     return problems.filter(prob => {
       const isSolved = solvedProblemIds.has(prob.id)
-      if (activeFilter === 'AC') {
-        return isSolved
+      
+      // Filter by AC/UNSOLVED status
+      if (activeFilter === 'AC' && !isSolved) return false
+      if (activeFilter === 'UNSOLVED' && isSolved) return false
+      
+      // Filter by topic search term
+      if (searchTerm.trim() !== '') {
+        const query = searchTerm.toLowerCase().trim()
+        const probTopic = (prob.topic || '').toLowerCase()
+        const probTitle = (prob.title || '').toLowerCase()
+        return probTopic.includes(query) || probTitle.includes(query)
       }
-      if (activeFilter === 'UNSOLVED') {
-        return !isSolved
-      }
+      
       return true
     })
-  }, [problems, solvedProblemIds, activeFilter])
+  }, [problems, solvedProblemIds, activeFilter, searchTerm])
 
   const groupedProblems = useMemo(() => {
     const groups = filteredProblems.reduce((acc, prob) => {
@@ -313,55 +321,79 @@ export default function Dashboard({ user, showToast }) {
             <BookOpen size={20} style={{ color: '#3b82f6' }} />
             Danh sách bài tập
           </h2>
-          {user && (
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem' }}>
-              <button 
-                onClick={() => setActiveFilter('ALL')}
-                className="btn"
-                style={{ 
-                  padding: '0.4rem 0.85rem', 
-                  fontSize: '0.8rem', 
-                  borderRadius: '6px',
-                  background: activeFilter === 'ALL' ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'rgba(255, 255, 255, 0.05)',
-                  border: activeFilter === 'ALL' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-                  color: activeFilter === 'ALL' ? '#ffffff' : 'var(--text-muted)',
-                  cursor: 'pointer'
-                }}
-              >
-                Tất cả
-              </button>
-              <button 
-                onClick={() => setActiveFilter('AC')}
-                className="btn"
-                style={{ 
-                  padding: '0.4rem 0.85rem', 
-                  fontSize: '0.8rem', 
-                  borderRadius: '6px',
-                  background: activeFilter === 'AC' ? 'linear-gradient(135deg, #10b981, #047857)' : 'rgba(255, 255, 255, 0.05)',
-                  border: activeFilter === 'AC' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-                  color: activeFilter === 'AC' ? '#ffffff' : 'var(--text-muted)',
-                  cursor: 'pointer'
-                }}
-              >
-                Đã AC ({solvedProblemIds.size})
-              </button>
-              <button 
-                onClick={() => setActiveFilter('UNSOLVED')}
-                className="btn"
-                style={{ 
-                  padding: '0.4rem 0.85rem', 
-                  fontSize: '0.8rem', 
-                  borderRadius: '6px',
-                  background: activeFilter === 'UNSOLVED' ? 'linear-gradient(135deg, #f59e0b, #b45309)' : 'rgba(255, 255, 255, 0.05)',
-                  border: activeFilter === 'UNSOLVED' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
-                  color: activeFilter === 'UNSOLVED' ? '#ffffff' : 'var(--text-muted)',
-                  cursor: 'pointer'
-                }}
-              >
-                Chưa giải
-              </button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {user && (
+                <>
+                  <button 
+                    onClick={() => setActiveFilter('ALL')}
+                    className="btn"
+                    style={{ 
+                      padding: '0.4rem 0.85rem', 
+                      fontSize: '0.8rem', 
+                      borderRadius: '6px',
+                      background: activeFilter === 'ALL' ? 'linear-gradient(135deg, #3b82f6, #1d4ed8)' : 'rgba(255, 255, 255, 0.05)',
+                      border: activeFilter === 'ALL' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                      color: activeFilter === 'ALL' ? '#ffffff' : 'var(--text-muted)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Tất cả
+                  </button>
+                  <button 
+                    onClick={() => setActiveFilter('AC')}
+                    className="btn"
+                    style={{ 
+                      padding: '0.4rem 0.85rem', 
+                      fontSize: '0.8rem', 
+                      borderRadius: '6px',
+                      background: activeFilter === 'AC' ? 'linear-gradient(135deg, #10b981, #047857)' : 'rgba(255, 255, 255, 0.05)',
+                      border: activeFilter === 'AC' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                      color: activeFilter === 'AC' ? '#ffffff' : 'var(--text-muted)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Đã AC ({solvedProblemIds.size})
+                  </button>
+                  <button 
+                    onClick={() => setActiveFilter('UNSOLVED')}
+                    className="btn"
+                    style={{ 
+                      padding: '0.4rem 0.85rem', 
+                      fontSize: '0.8rem', 
+                      borderRadius: '6px',
+                      background: activeFilter === 'UNSOLVED' ? 'linear-gradient(135deg, #f59e0b, #b45309)' : 'rgba(255, 255, 255, 0.05)',
+                      border: activeFilter === 'UNSOLVED' ? 'none' : '1px solid rgba(255, 255, 255, 0.1)',
+                      color: activeFilter === 'UNSOLVED' ? '#ffffff' : 'var(--text-muted)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Chưa giải
+                  </button>
+                </>
+              )}
             </div>
-          )}
+            
+            <div style={{ flex: 1, minWidth: '180px', display: 'flex', justifyContent: 'flex-end' }}>
+              <input 
+                type="text" 
+                className="form-control" 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                placeholder="Tìm chủ đề hoặc tên bài..."
+                style={{ 
+                  padding: '0.4rem 0.75rem', 
+                  fontSize: '0.8rem', 
+                  height: '34px',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  borderColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '6px',
+                  width: '100%',
+                  maxWidth: '240px'
+                }}
+              />
+            </div>
+          </div>
           {loadingProblems ? (
             <p style={{ color: 'var(--text-muted)' }}>Đang tải đề bài...</p>
           ) : Object.keys(groupedProblems).length === 0 ? (
