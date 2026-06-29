@@ -52,7 +52,7 @@ export default function ProblemDetails({ user, showToast }) {
   const [showConsole, setShowConsole] = useState(false)
   const [editorRef, setEditorRef] = useState(null)
 
-  const defaultTemplate = `import java.util.Scanner;
+  const defaultTemplate = `import java.util.*;
 
 public class Solution {
     public static void main(String[] args) {
