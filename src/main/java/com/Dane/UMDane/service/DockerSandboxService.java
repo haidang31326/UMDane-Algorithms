@@ -9,6 +9,8 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -68,6 +70,70 @@ public class DockerSandboxService {
                 cleanup(tempDir.toFile());
             }
         }
+    }
+
+    public List<SandboxResult> executeBatch(String code, String driverCode, List<String> inputs, int timeLimitMs, int memoryLimitMb) {
+        List<SandboxResult> results = new ArrayList<>();
+        String className = extractClassName(code);
+        Path tempDir = null;
+        try {
+            // Create a temp directory
+            tempDir = Files.createTempDirectory("umdane-sandbox-" + UUID.randomUUID());
+            String hostPath = tempDir.toAbsolutePath().toString().replace("\\", "/");
+
+            // Write the user's Java code file
+            File sourceFile = new File(tempDir.toFile(), className + ".java");
+            try (FileWriter writer = new FileWriter(sourceFile, StandardCharsets.UTF_8)) {
+                writer.write(code);
+            }
+
+            // Write the driver code if present
+            String mainClassName = className;
+            if (driverCode != null && !driverCode.trim().isEmpty()) {
+                String driverClassName = extractClassName(driverCode);
+                if (driverClassName == null || driverClassName.isEmpty()) {
+                    driverClassName = "Main";
+                }
+                mainClassName = driverClassName;
+                File driverFile = new File(tempDir.toFile(), driverClassName + ".java");
+                try (FileWriter writer = new FileWriter(driverFile, StandardCharsets.UTF_8)) {
+                    writer.write(driverCode);
+                }
+            }
+
+            // 1. COMPILE CODE once
+            SandboxResult compileResult = compile(hostPath, mainClassName);
+            if (compileResult.getStatus() == SubmissionStatus.COMPILE_ERROR) {
+                results.add(compileResult);
+                return results;
+            }
+
+            // 2. RUN CODE for each input sequentially
+            for (String input : inputs) {
+                SandboxResult runResult = run(hostPath, mainClassName, input, timeLimitMs, memoryLimitMb);
+                results.add(runResult);
+
+                // Stop running subsequent test cases early if user's code hits TLE or RE
+                if (runResult.getStatus() == SubmissionStatus.TIME_LIMIT_EXCEEDED ||
+                    runResult.getStatus() == SubmissionStatus.RUNTIME_ERROR) {
+                    break;
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("Lỗi trong quá trình chạy sandbox batch", e);
+            results.add(SandboxResult.builder()
+                    .status(SubmissionStatus.COMPILE_ERROR)
+                    .errorOutput("Hệ thống sandbox gặp lỗi: " + e.getMessage())
+                    .runtimeMs(0)
+                    .build());
+        } finally {
+            // Cleanup temp directory
+            if (tempDir != null) {
+                cleanup(tempDir.toFile());
+            }
+        }
+        return results;
     }
 
     private SandboxResult compile(String localPath, String mainClassName) throws IOException, InterruptedException {
