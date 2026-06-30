@@ -51,6 +51,7 @@ export default function ProblemDetails({ user, showToast }) {
   const [runResult, setRunResult] = useState(null)
   const [showConsole, setShowConsole] = useState(false)
   const [editorRef, setEditorRef] = useState(null)
+  const currentSampleTestCase = problem?.sampleTestCases?.find(tc => tc.inputData === runInput)
 
   const defaultTemplate = `import java.util.*;
 
@@ -426,7 +427,7 @@ public class Solution {
                         key={idx}
                         type="button"
                         className="btn"
-                        onClick={() => setRunInput(tc.inputData)}
+                        onClick={() => { setRunInput(tc.inputData); setRunResult(null); }}
                         style={{
                           padding: '0.3rem 0.6rem',
                           fontSize: '0.75rem',
@@ -451,10 +452,21 @@ public class Solution {
                   className="form-control" 
                   rows={4} 
                   value={runInput} 
-                  onChange={(e) => setRunInput(e.target.value)} 
+                  onChange={(e) => { setRunInput(e.target.value); setRunResult(null); }} 
                   placeholder="Nhập input dữ liệu ở đây... Ví dụ: 5 10"
-                  style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', background: 'rgba(15, 23, 42, 0.6)' }}
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', background: 'rgba(15, 23, 42, 0.6)', marginBottom: '0.75rem' }}
                 />
+                
+                {currentSampleTestCase && (
+                  <div style={{ marginBottom: '0.75rem' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                      Kết quả đầu ra mong đợi (Expected Output):
+                    </span>
+                    <pre style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)', padding: '0.6rem 0.8rem', borderRadius: '4px', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: '#60a5fa', whiteSpace: 'pre-wrap', margin: 0 }}>
+                      {currentSampleTestCase.expectedOutput || '(Rỗng)'}
+                    </pre>
+                  </div>
+                )}
               </div>
 
               {runResult && (

@@ -90,22 +90,20 @@ public class SubmissionService {
 
                 if (result.getStatus() == SubmissionStatus.TIME_LIMIT_EXCEEDED) {
                     finalStatus = SubmissionStatus.TIME_LIMIT_EXCEEDED;
-                    if (tc.getIsHidden() != null && tc.getIsHidden()) {
-                        errorMessage = "Time Limit Exceeded ở một Edge Case ẩn (trường hợp biên hoặc dữ liệu cực hạn). Hãy tối ưu lại thuật toán!";
-                    } else {
-                        errorMessage = "Time Limit Exceeded ở test case #" + (i + 1);
-                    }
+                    String caseType = (tc.getIsHidden() != null && tc.getIsHidden()) ? " (Edge Case Ẩn)" : "";
+                    errorMessage = "Time Limit Exceeded ở test case #" + (i + 1) + caseType + ".\n" +
+                            "Input:\n" + tc.getInputData() + "\n" +
+                            "Limit: " + timeLimit + " ms, Actual: " + result.getRuntimeMs() + " ms";
                     maxRuntimeMs = Math.max(maxRuntimeMs, result.getRuntimeMs());
                     break;
                 }
 
                 if (result.getStatus() == SubmissionStatus.RUNTIME_ERROR) {
                     finalStatus = SubmissionStatus.RUNTIME_ERROR;
-                    if (tc.getIsHidden() != null && tc.getIsHidden()) {
-                        errorMessage = "Runtime Error ở một Edge Case ẩn (trường hợp đặc biệt/biên). Hãy kiểm tra xem code có bị null pointer, tràn mảng hoặc chia cho 0 hay không.";
-                    } else {
-                        errorMessage = "Runtime Error ở test case #" + (i + 1) + ":\n" + result.getErrorOutput();
-                    }
+                    String caseType = (tc.getIsHidden() != null && tc.getIsHidden()) ? " (Edge Case Ẩn)" : "";
+                    errorMessage = "Runtime Error ở test case #" + (i + 1) + caseType + ".\n" +
+                            "Input:\n" + tc.getInputData() + "\n" +
+                            "Details:\n" + result.getErrorOutput();
                     maxRuntimeMs = Math.max(maxRuntimeMs, result.getRuntimeMs());
                     break;
                 }
@@ -118,11 +116,11 @@ public class SubmissionService {
 
                 if (!cleanExpected.equals(cleanActual)) {
                     finalStatus = SubmissionStatus.WRONG_ANSWER;
-                    if (tc.getIsHidden() != null && tc.getIsHidden()) {
-                        errorMessage = "Wrong Answer ở một Edge Case ẩn (trường hợp đặc biệt/giới hạn biên). Hãy kiểm tra lại các giá trị đặc biệt như âm, cực đại, rỗng, hoặc trùng lặp.";
-                    } else {
-                        errorMessage = "Wrong Answer ở test case #" + (i + 1) + ".\nExpected:\n" + tc.getExpectedOutput() + "\nActual:\n" + result.getOutput();
-                    }
+                    String caseType = (tc.getIsHidden() != null && tc.getIsHidden()) ? " (Edge Case Ẩn)" : "";
+                    errorMessage = "Wrong Answer ở test case #" + (i + 1) + caseType + ".\n" +
+                            "Input:\n" + tc.getInputData() + "\n" +
+                            "Expected:\n" + tc.getExpectedOutput() + "\n" +
+                            "Actual:\n" + result.getOutput();
                     break;
                 }
             }
