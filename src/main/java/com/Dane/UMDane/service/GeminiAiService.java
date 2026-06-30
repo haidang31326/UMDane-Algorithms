@@ -169,6 +169,12 @@ public class GeminiAiService {
 
             return new GeneratedProblem(title, description, hint, constraints, timeLimit, memoryLimit, userTemplate, driverCode, testCases);
 
+        } catch (org.springframework.web.client.RestClientResponseException e) {
+            log.error("Lỗi HTTP phản hồi từ Gemini API (Status: {})", e.getStatusCode(), e);
+            if (e.getStatusCode().value() == 429) {
+                throw new RuntimeException("Hệ thống AI đang quá tải hoặc bạn đã vượt quá giới hạn yêu cầu tạo đề (Rate Limit: tối đa 15 lần/phút). Vui lòng đợi vài giây rồi thử lại!");
+            }
+            throw new RuntimeException("Lỗi từ hệ thống AI (HTTP " + e.getStatusCode().value() + "). Vui lòng thử lại!");
         } catch (Exception e) {
             log.error("Lỗi khi kết nối đến Gemini API", e);
             throw new RuntimeException("Không thể sinh đề bài bằng AI: " + e.getMessage(), e);
