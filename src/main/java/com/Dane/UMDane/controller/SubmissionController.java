@@ -29,9 +29,9 @@ public class SubmissionController {
     }
 
     @PostMapping("/run")
-    public ResponseEntity<ApiResponse<SandboxResult>> runCode(@Valid @RequestBody CodeRunDTO request) {
-        SandboxResult result = submissionService.runCode(request);
-        return ResponseEntity.ok(ApiResponse.success("Chạy thử hoàn tất!", result));
+    public ResponseEntity<ApiResponse<List<SandboxResult>>> runCode(@Valid @RequestBody CodeRunDTO request) {
+        List<SandboxResult> results = submissionService.runCode(request);
+        return ResponseEntity.ok(ApiResponse.success("Chạy thử hoàn tất!", results));
     }
 
     @GetMapping

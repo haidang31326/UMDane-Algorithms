@@ -138,7 +138,7 @@ public class SubmissionService {
         return submission;
     }
 
-    public SandboxResult runCode(CodeRunDTO requestDTO) {
+    public List<SandboxResult> runCode(CodeRunDTO requestDTO) {
         log.info("Đang chạy thử code (không lưu database)...");
         String driverCode = null;
         int timeLimit = 2000;
@@ -155,7 +155,15 @@ public class SubmissionService {
                 log.warn("Lỗi khi lấy driver code cho chạy thử", e);
             }
         }
-        return sandboxService.execute(requestDTO.getCode(), driverCode, requestDTO.getInputData(), timeLimit, memoryLimit);
+        
+        List<String> inputs = new java.util.ArrayList<>();
+        if (requestDTO.getInputs() != null && !requestDTO.getInputs().isEmpty()) {
+            inputs.addAll(requestDTO.getInputs());
+        } else {
+            inputs.add(requestDTO.getInputData() != null ? requestDTO.getInputData() : "");
+        }
+        
+        return sandboxService.executeBatch(requestDTO.getCode(), driverCode, inputs, timeLimit, memoryLimit);
     }
 
     private void broadcastUpdate(Submission submission) {

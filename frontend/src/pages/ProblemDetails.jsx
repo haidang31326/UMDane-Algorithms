@@ -48,7 +48,8 @@ export default function ProblemDetails({ user, showToast }) {
   const [showHint, setShowHint] = useState(false)
   const [running, setRunning] = useState(false)
   const [runInput, setRunInput] = useState('')
-  const [runResult, setRunResult] = useState(null)
+  const [runResults, setRunResults] = useState(null)
+  const [activeTabIdx, setActiveTabIdx] = useState(0)
   const [showConsole, setShowConsole] = useState(false)
   const [editorRef, setEditorRef] = useState(null)
   const currentSampleTestCase = problem?.sampleTestCases?.find(tc => tc.inputData === runInput)
@@ -180,8 +181,12 @@ public class Solution {
 
   const handleRun = async () => {
     setRunning(true)
-    setRunResult(null)
+    setRunResults(null)
     setShowConsole(true)
+
+    // Build the inputs list: all sample test cases plus the custom runInput
+    const sampleInputs = problem?.sampleTestCases?.map(tc => tc.inputData) || []
+    const inputs = [...sampleInputs, runInput || '']
 
     try {
       const response = await fetch('/api/submissions/run', {
@@ -193,18 +198,19 @@ public class Solution {
         body: JSON.stringify({
           problemId: parseInt(id),
           code: code,
-          inputData: runInput,
+          inputs: inputs,
           language: 'JAVA'
         })
       })
 
       const data = await response.json()
       if (response.ok && data.code === 200) {
-        setRunResult(data.data)
-        if (data.data.status === 'ACCEPTED') {
+        setRunResults(data.data)
+        const anyFailed = data.data.some(r => r.status !== 'ACCEPTED')
+        if (!anyFailed) {
           showToast('Chạy thử hoàn tất thành công!')
         } else {
-          showToast(`Chạy thử thất bại: ${data.data.status}`, 'error')
+          showToast('Có test case chạy thử thất bại!', 'error')
         }
       } else {
         showToast(data.message || 'Lỗi khi chạy thử code!', 'error')
@@ -418,87 +424,120 @@ public class Solution {
             <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
                 <label className="form-label" style={{ fontSize: '0.85rem', marginBottom: '0.5rem', display: 'block', color: 'var(--text-muted)' }}>
-                  Dữ liệu đầu vào mẫu (Sample Test Cases)
+                  Dữ liệu đầu vào mẫu & Tùy chỉnh (Sample Test Cases)
                 </label>
-                {problem.sampleTestCases && problem.sampleTestCases.length > 0 ? (
-                  <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-                    {problem.sampleTestCases.map((tc, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        className="btn"
-                        onClick={() => { setRunInput(tc.inputData); setRunResult(null); }}
-                        style={{
-                          padding: '0.3rem 0.6rem',
-                          fontSize: '0.75rem',
-                          borderRadius: '4px',
-                          background: runInput === tc.inputData ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255, 255, 255, 0.05)',
-                          color: runInput === tc.inputData ? '#10b981' : 'var(--text-muted)',
-                          border: runInput === tc.inputData ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid var(--border-color)',
-                          cursor: 'pointer',
-                          fontWeight: runInput === tc.inputData ? 700 : 500
-                        }}
-                      >
-                        Ví dụ {idx + 1}
-                      </button>
-                    ))}
+                
+                {/* Tab Selector */}
+                <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap', borderBottom: '1px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+                  {problem.sampleTestCases?.map((tc, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className="btn"
+                      onClick={() => setActiveTabIdx(idx)}
+                      style={{
+                        padding: '0.35rem 0.75rem',
+                        fontSize: '0.75rem',
+                        borderRadius: '4px',
+                        background: activeTabIdx === idx ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                        color: activeTabIdx === idx ? '#60a5fa' : 'var(--text-muted)',
+                        border: activeTabIdx === idx ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid var(--border-color)',
+                        cursor: 'pointer',
+                        fontWeight: activeTabIdx === idx ? 700 : 500
+                      }}
+                    >
+                      Ví dụ {idx + 1}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => setActiveTabIdx(problem.sampleTestCases?.length || 0)}
+                    style={{
+                      padding: '0.35rem 0.75rem',
+                      fontSize: '0.75rem',
+                      borderRadius: '4px',
+                      background: activeTabIdx === (problem.sampleTestCases?.length || 0) ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+                      color: activeTabIdx === (problem.sampleTestCases?.length || 0) ? '#60a5fa' : 'var(--text-muted)',
+                      border: activeTabIdx === (problem.sampleTestCases?.length || 0) ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid var(--border-color)',
+                      cursor: 'pointer',
+                      fontWeight: activeTabIdx === (problem.sampleTestCases?.length || 0) ? 700 : 500
+                    }}
+                  >
+                    Tùy chỉnh
+                  </button>
+                </div>
+
+                {/* Tab Contents */}
+                {activeTabIdx < (problem.sampleTestCases?.length || 0) ? (
+                  // Sample Test Case Tab
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                        Dữ liệu đầu vào (Input):
+                      </span>
+                      <pre style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)', padding: '0.6rem 0.8rem', borderRadius: '4px', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--text-main)', whiteSpace: 'pre-wrap', margin: 0 }}>
+                        {problem.sampleTestCases[activeTabIdx]?.inputData || '(Rỗng)'}
+                      </pre>
+                    </div>
+                    <div>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                        Kết quả đầu ra mong đợi (Expected Output):
+                      </span>
+                      <pre style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)', padding: '0.6rem 0.8rem', borderRadius: '4px', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: '#60a5fa', whiteSpace: 'pre-wrap', margin: 0 }}>
+                        {problem.sampleTestCases[activeTabIdx]?.expectedOutput || '(Rỗng)'}
+                      </pre>
+                    </div>
                   </div>
                 ) : (
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.5rem' }}>
-                    Không có test case mẫu nào được cấu hình.
-                  </span>
-                )}
-                <textarea 
-                  className="form-control" 
-                  rows={4} 
-                  value={runInput} 
-                  onChange={(e) => { setRunInput(e.target.value); setRunResult(null); }} 
-                  placeholder="Nhập input dữ liệu ở đây... Ví dụ: 5 10"
-                  style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', background: 'rgba(15, 23, 42, 0.6)', marginBottom: '0.75rem' }}
-                />
-                
-                {currentSampleTestCase && (
-                  <div style={{ marginBottom: '0.75rem' }}>
+                  // Custom Input Tab
+                  <div>
                     <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
-                      Kết quả đầu ra mong đợi (Expected Output):
+                      Nhập đầu vào tùy chỉnh (Custom Input):
                     </span>
-                    <pre style={{ background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border-color)', padding: '0.6rem 0.8rem', borderRadius: '4px', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: '#60a5fa', whiteSpace: 'pre-wrap', margin: 0 }}>
-                      {currentSampleTestCase.expectedOutput || '(Rỗng)'}
-                    </pre>
+                    <textarea 
+                      className="form-control" 
+                      rows={4} 
+                      value={runInput} 
+                      onChange={(e) => { setRunInput(e.target.value); setRunResults(null); }} 
+                      placeholder="Nhập input dữ liệu ở đây... Ví dụ: 5 10"
+                      style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', background: 'rgba(15, 23, 42, 0.6)' }}
+                    />
                   </div>
                 )}
               </div>
 
-              {runResult && (
-                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem' }}>
+              {/* Display Result for Active Tab */}
+              {runResults && runResults[activeTabIdx] && (
+                <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '1rem', marginTop: '0.5rem' }}>
                   <h4 style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>Kết quả chạy thử:</h4>
                   
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                    <span className={`status-badge status-${runResult.status}`}>
-                      {runResult.status === 'ACCEPTED' ? 'SUCCESS' :
-                       runResult.status === 'COMPILE_ERROR' ? 'COMPILE ERROR (CE)' :
-                       runResult.status === 'RUNTIME_ERROR' ? 'RUNTIME ERROR (RE)' :
-                       runResult.status === 'TIME_LIMIT_EXCEEDED' ? 'TIME LIMIT EXCEEDED (TLE)' : runResult.status}
+                    <span className={`status-badge status-${runResults[activeTabIdx].status}`}>
+                      {runResults[activeTabIdx].status === 'ACCEPTED' ? 'SUCCESS' :
+                       runResults[activeTabIdx].status === 'COMPILE_ERROR' ? 'COMPILE ERROR (CE)' :
+                       runResults[activeTabIdx].status === 'RUNTIME_ERROR' ? 'RUNTIME ERROR (RE)' :
+                       runResults[activeTabIdx].status === 'TIME_LIMIT_EXCEEDED' ? 'TIME LIMIT EXCEEDED (TLE)' : runResults[activeTabIdx].status}
                     </span>
                     <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                      Thời gian chạy: <strong style={{ color: 'var(--text-main)' }}>{runResult.runtimeMs} ms</strong>
+                      Thời gian chạy: <strong style={{ color: 'var(--text-main)' }}>{runResults[activeTabIdx].runtimeMs} ms</strong>
                     </span>
                   </div>
 
-                  {runResult.status === 'ACCEPTED' && (
+                  {runResults[activeTabIdx].status === 'ACCEPTED' && (
                     <div>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Đầu ra (Standard Output):</p>
                       <pre className="console-output" style={{ background: 'rgba(16, 185, 129, 0.05)', borderColor: 'rgba(16, 185, 129, 0.2)', padding: '0.75rem', borderRadius: '4px', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: '#34d399' }}>
-                        {runResult.output || '(Không có dữ liệu in ra)'}
+                        {runResults[activeTabIdx].output || '(Không có dữ liệu in ra)'}
                       </pre>
                     </div>
                   )}
 
-                  {(runResult.errorOutput || runResult.status === 'COMPILE_ERROR' || runResult.status === 'RUNTIME_ERROR') && (
+                  {(runResults[activeTabIdx].errorOutput || runResults[activeTabIdx].status === 'COMPILE_ERROR' || runResults[activeTabIdx].status === 'RUNTIME_ERROR') && (
                     <div>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>Chi tiết lỗi:</p>
                       <pre className="console-output console-error" style={{ padding: '0.75rem', borderRadius: '4px', whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)', fontSize: '0.85rem' }}>
-                        {runResult.errorOutput}
+                        {runResults[activeTabIdx].errorOutput}
                       </pre>
                     </div>
                   )}
