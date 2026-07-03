@@ -28,6 +28,7 @@ public class ProblemService {
     private final SubmissionRepository submissionRepository;
     private final UserDeletedProblemRepository userDeletedProblemRepository;
     private final GeminiAiService geminiAiService;
+    private final DockerSandboxService sandboxService;
     private final Random random = new Random();
 
     public List<ProblemResponseDTO> getAllProblems(Long userId) {
@@ -62,6 +63,7 @@ public class ProblemService {
         Integer timeLimit = 2000;
         Integer memoryLimit = 128;
         String userTemplate = null;
+        String referenceSolution = null;
         String driverCode = null;
         List<TestCase> testCases = new ArrayList<>();
         String normalizedDifficulty = (difficulty == null || difficulty.trim().isEmpty()) ? "MEDIUM" : difficulty.toUpperCase().trim();
@@ -81,14 +83,53 @@ public class ProblemService {
                 timeLimit = aiProb.getTimeLimit();
                 memoryLimit = aiProb.getMemoryLimit();
                 userTemplate = aiProb.getUserTemplate();
+                referenceSolution = aiProb.getReferenceSolution();
                 driverCode = aiProb.getDriverCode();
                 
                 for (GeminiAiService.GeneratedTestCase aiTc : aiProb.getTestCases()) {
                     testCases.add(TestCase.builder()
                             .inputData(aiTc.getInputData())
-                            .expectedOutput(aiTc.getExpectedOutput())
                             .isHidden(aiTc.isHidden())
                             .build());
+                }
+
+                // Batch execute reference solution in the sandbox to generate exact expected outputs
+                int tLimit = timeLimit != null ? timeLimit : 2000;
+                int mLimit = memoryLimit != null ? memoryLimit : 128;
+                List<String> inputs = testCases.stream().map(TestCase::getInputData).toList();
+                
+                log.info("Đang tự động xác thực và chạy thử mã giải mẫu (Reference Solution) cho {} test cases...", testCases.size());
+                List<com.Dane.UMDane.dto.SandboxResult> sandboxResults = sandboxService.executeBatch(
+                        referenceSolution, 
+                        driverCode, 
+                        inputs, 
+                        tLimit, 
+                        mLimit
+                );
+                
+                if (sandboxResults.isEmpty()) {
+                    throw new RuntimeException("Không nhận được kết quả xác thực từ Docker sandbox!");
+                }
+                
+                if (sandboxResults.get(0).getStatus() == com.Dane.UMDane.entity.SubmissionStatus.COMPILE_ERROR) {
+                    log.error("Reference solution compilation failed during auto-validation: {}", sandboxResults.get(0).getErrorOutput());
+                    throw new RuntimeException("Mã giải mẫu (Reference Solution) bị lỗi biên dịch: " + sandboxResults.get(0).getErrorOutput());
+                }
+                
+                for (int i = 0; i < testCases.size(); i++) {
+                    TestCase tc = testCases.get(i);
+                    com.Dane.UMDane.dto.SandboxResult res = sandboxResults.get(i);
+                    
+                    if (res.getStatus() == com.Dane.UMDane.entity.SubmissionStatus.RUNTIME_ERROR) {
+                        log.error("Reference solution runtime error at case #{}: {}", i + 1, res.getErrorOutput());
+                        throw new RuntimeException("Mã giải mẫu gặp lỗi thời gian chạy ở test case #" + (i + 1) + ": " + res.getErrorOutput());
+                    }
+                    if (res.getStatus() == com.Dane.UMDane.entity.SubmissionStatus.TIME_LIMIT_EXCEEDED) {
+                        log.error("Reference solution TLE at case #{}", i + 1);
+                        throw new RuntimeException("Mã giải mẫu chạy quá giới hạn thời gian (TLE) ở test case #" + (i + 1));
+                    }
+                    
+                    tc.setExpectedOutput(res.getOutput() != null ? res.getOutput().trim() : "");
                 }
             } catch (Exception e) {
                 log.error("AI generation failed", e);
@@ -110,6 +151,7 @@ public class ProblemService {
                 .timeLimit(timeLimit)
                 .memoryLimit(memoryLimit)
                 .userTemplate(userTemplate)
+                .referenceSolution(referenceSolution)
                 .driverCode(driverCode)
                 .build();
         problem = problemRepository.save(problem);

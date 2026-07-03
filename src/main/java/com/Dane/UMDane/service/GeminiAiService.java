@@ -72,7 +72,8 @@ public class GeminiAiService {
                 "- Thiết kế bài tập theo dạng hàm (LeetCode-style) để người dùng chỉ cần hoàn thành một hàm/class Solution mà không cần viết hàm main hay tự đọc xuất dữ liệu. Cụ thể:\n" +
                 "  1. Sinh ra 'userTemplate': Chỉ chứa khai báo class Solution, tên phương thức mẫu, các tham số đầu vào, một giá trị trả về mặc định tượng trưng (ví dụ: return 0; hoặc return null; hoặc return new int[0];) và ghi chú // Code của bạn tại đây. TUYỆT ĐỐI KHÔNG được viết sẵn bất kỳ logic giải thuật hay mã nguồn giải bài tập nào vào trong 'userTemplate'. Hãy đảm bảo mã nguồn trong 'userTemplate' và 'driverCode' phải được định dạng đẹp mắt, thụt lề chuẩn và bắt buộc xuống dòng (sử dụng \\n) đầy đủ cho từng phần khai báo, dấu ngoặc nhọn, và chú thích; tuyệt đối không viết dồn trên một dòng hoặc dùng khoảng trắng thay cho dấu xuống dòng. Bắt buộc khai báo thư viện chuẩn (sử dụng import java.util.*;) ở đầu cả 'userTemplate' và 'driverCode' để người dùng sử dụng được các cấu trúc dữ liệu như HashSet, HashMap, Queue, Stack, v.v. \n" +
                 "  2. Sinh ra 'driverCode': Là một chương trình Java hoàn chỉnh (public class Main) chứa hàm main. Hàm main này sẽ nhận dữ liệu từ Standard Input thông qua Scanner, phân tách/chuyển đổi dữ liệu (ví dụ đọc mảng, đọc số), khởi tạo đối tượng Solution và gọi phương thức của Solution, sau đó in kết quả ra Standard Output. Hãy đảm bảo driverCode có thể tự động chạy khớp hoàn toàn với định dạng testCases đầu vào.\n" +
-                "Sinh ra từ 3 đến 5 test cases hợp lệ phục vụ cho việc chấm bài. Trong đó, hãy thiết kế ít nhất 1-2 test cases đặc biệt đại diện cho dữ liệu biên hoặc trường hợp góc (Edge Cases như đầu vào bằng rỗng, giá trị biên cực đại/cực tiểu, hoặc trùng lặp...) và đặt 'isHidden': true để ẩn chúng đi, còn các test cases bình thường khác thì để 'isHidden': false.",
+                "  3. Sinh ra 'referenceSolution': Là một đoạn mã nguồn giải bài tập hoàn chỉnh, viết bằng ngôn ngữ Java (chứa class Solution được hiện thực đầy đủ, logic giải chuẩn xác tối ưu, có thể có thêm helper class tĩnh lồng bên trong class Solution nếu cần). Lời giải chuẩn này sẽ được hệ thống biên dịch và chạy thử cùng với 'driverCode' trong sandbox để tự động xác thực và thu thập đáp án chuẩn cho các test cases.\n" +
+                "Sinh ra từ 3 đến 5 test cases hợp lệ phục vụ cho việc chấm bài. Trong đó, hãy thiết kế ít nhất 1-2 test cases đặc biệt đại diện cho dữ liệu biên hoặc trường hợp góc (Edge Cases như đầu vào bằng rỗng, giá trị biên cực đại/cực tiểu, hoặc trùng lặp...) và đặt 'isHidden': true để ẩn chúng đi, còn các test cases bình thường khác thì để 'isHidden': false. Lưu ý: Chỉ cần sinh ra 'inputData' cho test cases, không cần sinh ra expectedOutput.",
                 difficulty, topic, keyword, difficulty
         ));
 
@@ -92,15 +93,14 @@ public class GeminiAiService {
             Map<String, Object> parts = Map.of("parts", List.of(textPart));
             Map<String, Object> contentItem = Map.of("contents", List.of(parts));
 
-            // Define schema for structured output
+            // Define schema for structured output (omit expectedOutput from Gemini generation)
             Map<String, Object> testCaseItemSchema = Map.of(
                     "type", "OBJECT",
                     "properties", Map.of(
                             "inputData", Map.of("type", "STRING"),
-                            "expectedOutput", Map.of("type", "STRING"),
                             "isHidden", Map.of("type", "BOOLEAN")
                     ),
-                    "required", List.of("inputData", "expectedOutput", "isHidden")
+                    "required", List.of("inputData", "isHidden")
             );
 
             Map<String, Object> responseSchema = Map.of(
@@ -113,13 +113,14 @@ public class GeminiAiService {
                             "timeLimit", Map.of("type", "INTEGER"),
                             "memoryLimit", Map.of("type", "INTEGER"),
                             "userTemplate", Map.of("type", "STRING"),
+                            "referenceSolution", Map.of("type", "STRING"),
                             "driverCode", Map.of("type", "STRING"),
                             "testCases", Map.of(
                                     "type", "ARRAY",
                                     "items", testCaseItemSchema
                                 )
                     ),
-                    "required", List.of("title", "description", "hint", "constraints", "timeLimit", "memoryLimit", "userTemplate", "driverCode", "testCases")
+                    "required", List.of("title", "description", "hint", "constraints", "timeLimit", "memoryLimit", "userTemplate", "referenceSolution", "driverCode", "testCases")
             );
 
             Map<String, Object> generationConfig = Map.of(
@@ -153,6 +154,7 @@ public class GeminiAiService {
             Integer timeLimit = aiData.path("timeLimit").asInt(2000);
             Integer memoryLimit = aiData.path("memoryLimit").asInt(128);
             String userTemplate = aiData.path("userTemplate").asText();
+            String referenceSolution = aiData.path("referenceSolution").asText();
             String driverCode = aiData.path("driverCode").asText();
 
             List<GeneratedTestCase> testCases = new ArrayList<>();
@@ -161,13 +163,12 @@ public class GeminiAiService {
                 for (JsonNode tcNode : testCasesNode) {
                     testCases.add(new GeneratedTestCase(
                             tcNode.path("inputData").asText(),
-                            tcNode.path("expectedOutput").asText(),
                             tcNode.path("isHidden").asBoolean()
                     ));
                 }
             }
 
-            return new GeneratedProblem(title, description, hint, constraints, timeLimit, memoryLimit, userTemplate, driverCode, testCases);
+            return new GeneratedProblem(title, description, hint, constraints, timeLimit, memoryLimit, userTemplate, referenceSolution, driverCode, testCases);
 
         } catch (org.springframework.web.client.RestClientResponseException e) {
             log.error("Lỗi HTTP phản hồi từ Gemini API (Status: {})", e.getStatusCode(), e);
@@ -193,6 +194,7 @@ public class GeminiAiService {
         private Integer timeLimit;
         private Integer memoryLimit;
         private String userTemplate;
+        private String referenceSolution;
         private String driverCode;
         private List<GeneratedTestCase> testCases;
     }
@@ -202,7 +204,6 @@ public class GeminiAiService {
     @lombok.NoArgsConstructor
     public static class GeneratedTestCase {
         private String inputData;
-        private String expectedOutput;
         private boolean isHidden;
     }
 }

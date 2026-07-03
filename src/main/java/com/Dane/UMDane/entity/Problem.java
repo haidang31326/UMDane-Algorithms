@@ -50,6 +50,9 @@ public class Problem {
     @Column(name = "user_template", columnDefinition = "TEXT")
     private String userTemplate;
 
+    @Column(name = "reference_solution", columnDefinition = "TEXT")
+    private String referenceSolution;
+
     @Column(name = "driver_code", columnDefinition = "TEXT")
     private String driverCode;
 
