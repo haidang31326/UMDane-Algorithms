@@ -28,6 +28,7 @@ public class SubmissionService {
     private final TestCaseRepository testCaseRepository;
     private final DockerSandboxService sandboxService;
     private final SimpMessagingTemplate messagingTemplate;
+    private final UserRestreakService userRestreakService;
 
     public Submission submitCode(CodeSubmitDTO requestDTO) {
         Problem problem = problemRepository.findById(requestDTO.getProblemId())
@@ -131,6 +132,15 @@ public class SubmissionService {
         submission.setRuntimeMs(maxRuntimeMs);
         submission.setErrorMessage(errorMessage);
         submission = submissionRepository.save(submission);
+
+        // Check and earn restreak card if status is ACCEPTED
+        if (finalStatus == SubmissionStatus.ACCEPTED && userId != null) {
+            try {
+                userRestreakService.handleCheckAndEarnRestreak(userId, java.time.LocalDate.now());
+            } catch (Exception e) {
+                log.error("Lỗi khi kiểm tra và tặng restreak cho user {}", userId, e);
+            }
+        }
 
         // Broadcast final status
         broadcastUpdate(submission);

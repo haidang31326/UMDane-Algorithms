@@ -5,28 +5,38 @@ import { Calendar, Flame, Trophy, Award, CheckCircle2, ChevronRight, Activity, C
 export default function Profile({ user, showToast }) {
   const [submissions, setSubmissions] = useState([])
   const [problems, setProblems] = useState([])
+  const [restreakInfo, setRestreakInfo] = useState({ restreaksAvailable: 0, earnedDates: [], usedDates: [] })
   const [loading, setLoading] = useState(true)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [restoring, setRestoring] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [subRes, probRes] = await Promise.all([
+        const [subRes, probRes, restreakRes] = await Promise.all([
           fetch('/api/submissions', {
             headers: user ? { 'Authorization': `Bearer ${user.token}` } : {}
           }),
           fetch('/api/problems', {
+            headers: user ? { 'Authorization': `Bearer ${user.token}` } : {}
+          }),
+          fetch('/api/users/restreak', {
             headers: user ? { 'Authorization': `Bearer ${user.token}` } : {}
           })
         ])
 
         const subData = await subRes.json()
         const probData = await probRes.json()
+        const restreakData = await restreakRes.json()
 
         if (subRes.ok && subData.code === 200) {
           setSubmissions(subData.data)
         }
         if (probRes.ok && probData.code === 200) {
           setProblems(probData.data)
+        }
+        if (restreakRes.ok && restreakData.code === 200) {
+          setRestreakInfo(restreakData.data)
         }
       } catch (err) {
         showToast('Lỗi khi tải thông tin cá nhân!', 'error')
@@ -36,7 +46,7 @@ export default function Profile({ user, showToast }) {
     }
 
     fetchData()
-  }, [user])
+  }, [user, refreshTrigger])
 
   // Get user's submissions
   const userSubmissions = useMemo(() => {
@@ -79,6 +89,13 @@ export default function Profile({ user, showToast }) {
         acDates.add(dateStr)
       }
     })
+
+    if (restreakInfo.usedDates) {
+      restreakInfo.usedDates.forEach(dateStr => {
+        const dateStrFormatted = new Date(dateStr).toDateString()
+        acDates.add(dateStrFormatted)
+      })
+    }
 
     if (acDates.size === 0) {
       return { currentStreak: 0, maxStreak: 0 }
@@ -127,7 +144,7 @@ export default function Profile({ user, showToast }) {
     }
 
     return { currentStreak, maxStreak }
-  }, [userSubmissions])
+  }, [userSubmissions, restreakInfo.usedDates])
 
   // Generate last 365 days contribution data aligned to Sunday
   const calendarData = useMemo(() => {
@@ -138,6 +155,13 @@ export default function Profile({ user, showToast }) {
         dailyCount[dateStr] = (dailyCount[dateStr] || 0) + 1
       }
     })
+
+    if (restreakInfo.usedDates) {
+      restreakInfo.usedDates.forEach(dateStr => {
+        const dateStrFormatted = new Date(dateStr).toDateString()
+        dailyCount[dateStrFormatted] = -1
+      })
+    }
 
     const dates = []
     const today = new Date()
@@ -152,7 +176,8 @@ export default function Profile({ user, showToast }) {
       const count = dailyCount[dateStr] || 0
       
       let level = 0
-      if (count > 0 && count <= 2) level = 1
+      if (count === -1) level = 'freeze'
+      else if (count > 0 && count <= 2) level = 1
       else if (count > 2 && count <= 4) level = 2
       else if (count > 4 && count <= 6) level = 3
       else if (count > 6) level = 4
@@ -165,7 +190,7 @@ export default function Profile({ user, showToast }) {
       currentDate.setDate(currentDate.getDate() + 1)
     }
     return dates
-  }, [userSubmissions])
+  }, [userSubmissions, restreakInfo.usedDates])
 
   // Get recently solved problems list
   const recentSolved = useMemo(() => {
@@ -274,6 +299,99 @@ export default function Profile({ user, showToast }) {
               </div>
             </div>
           </div>
+
+          {/* Restreak Management Panel */}
+          <div style={{ width: '100%', textAlign: 'left', marginTop: '2rem', borderTop: '1px solid var(--border-color)', paddingTop: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+              <Flame size={18} style={{ color: '#60a5fa' }} />
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>Thẻ Restreak</h3>
+            </div>
+            
+            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: '1.4' }}>
+              Giải thành công 3 bài tập khác nhau trong cùng một ngày để nhận 1 thẻ Restreak (tối đa 1 thẻ/ngày). Thẻ này dùng để khôi phục hoặc giữ nguyên streak vào ngày bạn bỏ lỡ!
+            </p>
+
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between', 
+              padding: '0.75rem 1rem', 
+              background: 'rgba(59, 130, 246, 0.05)', 
+              border: '1px solid rgba(59, 130, 246, 0.2)', 
+              borderRadius: '8px', 
+              marginBottom: '1rem' 
+            }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Thẻ hiện có:</span>
+              <span style={{ 
+                fontSize: '1.25rem', 
+                fontWeight: 800, 
+                color: '#60a5fa', 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '0.25rem' 
+              }}>
+                {restreakInfo.restreaksAvailable} ❄️
+              </span>
+            </div>
+
+            {restreakInfo.restreaksAvailable > 0 && (
+              <div>
+                <label className="form-label" style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }}>
+                  Khôi phục streak cho ngày:
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input 
+                    type="date" 
+                    className="form-control" 
+                    id="restreak-date-input"
+                    defaultValue={(() => {
+                      const yesterday = new Date();
+                      yesterday.setDate(yesterday.getDate() - 1);
+                      return yesterday.toISOString().split('T')[0];
+                    })()}
+                    style={{ fontSize: '0.85rem', padding: '0.35rem 0.5rem', background: 'rgba(15, 23, 42, 0.6)' }}
+                  />
+                  <button 
+                    className="btn btn-primary"
+                    disabled={restoring}
+                    onClick={async () => {
+                      const dateInput = document.getElementById('restreak-date-input');
+                      const selectedDate = dateInput ? dateInput.value : '';
+                      if (!selectedDate) {
+                        showToast('Vui lòng chọn ngày cần khôi phục!', 'error');
+                        return;
+                      }
+                      setRestoring(true);
+                      try {
+                        const response = await fetch('/api/users/restreak/use', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${user.token}`
+                          },
+                          body: JSON.stringify({ date: selectedDate })
+                        });
+                        const data = await response.json();
+                        if (response.ok && data.code === 200) {
+                          showToast(data.message);
+                          setRefreshTrigger(prev => prev + 1);
+                        } else {
+                          showToast(data.message || 'Lỗi khi sử dụng thẻ Restreak!', 'error');
+                        }
+                      } catch (err) {
+                        showToast('Lỗi kết nối đến máy chủ!', 'error');
+                      } finally {
+                        setRestoring(false);
+                      }
+                    }}
+                    style={{ padding: '0.35rem 0.75rem', fontSize: '0.8rem', whiteSpace: 'nowrap' }}
+                  >
+                    {restoring ? 'Đang dùng...' : 'Sử dụng ❄️'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Column: Coding Streak Calendar Grid */}
@@ -305,7 +423,7 @@ export default function Profile({ user, showToast }) {
                   <div
                     key={idx}
                     className={`streak-square level-${day.level}`}
-                    title={`${day.dateStr}: ${day.count} bài giải thành công (AC)`}
+                    title={day.count === -1 ? `${day.dateStr}: Đã khôi phục bằng Restreak ❄️` : `${day.dateStr}: ${day.count} bài giải thành công (AC)`}
                   />
                 ))}
               </div>
@@ -313,6 +431,10 @@ export default function Profile({ user, showToast }) {
 
             {/* Legend */}
             <div className="streak-legend">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginRight: 'auto' }}>
+                <div className="legend-square level-freeze" style={{ display: 'inline-block' }} />
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Khôi phục (Restreak)</span>
+              </div>
               <span>Ít</span>
               <div className="legend-square level-0" />
               <div className="legend-square level-1" />
