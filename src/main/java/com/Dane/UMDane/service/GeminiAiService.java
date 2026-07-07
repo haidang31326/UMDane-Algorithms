@@ -63,10 +63,11 @@ public class GeminiAiService {
                 "Hãy biên soạn một bài tập lập trình competitive programming với độ khó '%s' bằng tiếng Việt cho chủ đề: '%s' và bối cảnh/từ khóa: '%s'.\n" +
                 "Yêu cầu đề bài phải có tiêu đề, mô tả chi tiết, hướng dẫn đọc dữ liệu đầu vào (Standard Input) và in kết quả ra màn hình (Standard Output).\n" +
                 "Độ khó '%s' yêu cầu:\n" +
-                "- EASY: Thuật toán rất cơ bản, các bài tính toán đơn giản, nhập xuất đơn giản.\n" +
-                "- MEDIUM: Thuật toán trung bình (Greedy, Quy hoạch động cơ bản, Sắp xếp, Tìm kiếm nhị phân, Cấu trúc dữ liệu mảng/list).\n" +
-                "- HARD: Thuật toán nâng cao (Đồ thị, Quy hoạch động phức tạp, Cấu trúc dữ liệu nâng cao như Tree/Segment Tree, thời gian chạy tối ưu).\n" +
+                "- EASY: Thuật toán rất cơ bản, các bài tính toán đơn giản, nhập xuất đơn giản, xử lý mảng/chuỗi cơ bản.\n" +
+                "- MEDIUM: Cấu trúc dữ liệu trung cấp như Stack (ngăn xếp), Queue (hàng đợi), PriorityQueue (hàng đợi ưu tiên), HashSet, HashMap (tối ưu O(1)), hoặc thuật toán tầm trung như Two Pointers, Sliding Window, Tìm kiếm nhị phân, Quy hoạch động cơ bản. Hạn chế lặp lại thuật toán tham lam (Greedy) trừ khi người dùng yêu cầu trực tiếp chủ đề đó.\n" +
+                "- HARD: Thuật toán nâng cao như Đồ thị (Dijkstra, Kruskal, BFS, DFS), các cấu trúc dữ liệu nâng cao (Tree, Segment Tree, Trie, Fenwick Tree), hoặc Quy hoạch động phức tạp tối ưu thời gian chạy.\n" +
                 "Yêu cầu bổ sung:\n" +
+                "- Đa dạng cấu trúc dữ liệu: Bắt buộc chọn cấu trúc dữ liệu tối ưu nhất cho bài toán và hiện thực nó trong mã giải mẫu (ví dụ: dùng HashSet để tìm phần tử duy nhất, HashMap để đếm tần số, Stack để xử lý ngoặc/biểu thức, Queue để xử lý hàng đợi phần tử). Tránh việc giải mọi bài toán bằng mảng thường (array) hoặc Greedy.\n" +
                 "- Xác định rõ ràng các ràng buộc dữ liệu đầu vào (constraints) bằng tiếng Việt (ví dụ: '1 <= N <= 10^5', '1 <= A[i] <= 10^9'). Để hiển thị đẹp mắt trên giao diện web, các công thức toán học và biểu thức chỉ số phải được định dạng bằng ký tự văn bản thường trực quan (ví dụ: dùng H[i], H[i+1], |H[i+1] - H[i]|, abs(x) hoặc x^2), TUYỆT ĐỐI KHÔNG sử dụng định dạng LaTeX phức tạp chứa các ký tự như \\{, \\}, _, ^ (ví dụ như H_{i+1} - H_i) vì giao diện chỉ hiển thị văn bản thường.\n" +
                 "- Đặt giới hạn thời gian (timeLimit tính bằng mili giây, thường là 2000) và giới hạn bộ nhớ (memoryLimit tính bằng MB, thường là 128 hoặc 256) phù hợp cho bài toán.\n" +
                 "- Thiết kế bài tập theo dạng hàm (LeetCode-style) để người dùng chỉ cần hoàn thành một hàm/class Solution mà không cần viết hàm main hay tự đọc xuất dữ liệu. Cụ thể:\n" +
