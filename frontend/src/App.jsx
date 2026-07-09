@@ -20,6 +20,29 @@ export default function App() {
         localStorage.removeItem('umdane_user')
       }
     }
+
+    // Intercept global fetch to handle 401/403 (token expiration)
+    const originalFetch = window.fetch
+    window.fetch = async (...args) => {
+      try {
+        const response = await originalFetch(...args)
+        if (response.status === 401 || response.status === 403) {
+          const userObj = localStorage.getItem('umdane_user')
+          if (userObj) {
+            localStorage.removeItem('umdane_user')
+            setUser(null)
+            showToast('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại!', 'error')
+          }
+        }
+        return response
+      } catch (error) {
+        throw error
+      }
+    }
+
+    return () => {
+      window.fetch = originalFetch
+    }
   }, [])
 
   const showToast = (message, type = 'success') => {
