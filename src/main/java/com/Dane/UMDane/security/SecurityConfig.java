@@ -39,6 +39,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/problems/**").permitAll()
                 .requestMatchers("/ws/**").permitAll() // WebSocket endpoint
+                .requestMatchers("/api/roadmap/admin/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )

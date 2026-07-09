@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface RoadmapNodeRepository extends JpaRepository<RoadmapNode, Integer> {
     List<RoadmapNode> findAllByOrderByNodeIdAsc();
+    java.util.Optional<RoadmapNode> findByProblemId(Long problemId);
 }

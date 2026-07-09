@@ -56,7 +56,6 @@ public class GeminiAiService {
         }
 
         String cleanedKey = cleanApiKey();
-        // Switch back to gemini-2.5-flash due to 503 high demand on 3.5-flash
         String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + cleanedKey;
 
         StringBuilder promptBuilder = new StringBuilder(String.format(
@@ -86,13 +85,65 @@ public class GeminiAiService {
             promptBuilder.append("Hãy tạo ra một bài tập có bài toán và câu chuyện hoàn toàn mới lạ khác biệt.");
         }
 
-        String prompt = promptBuilder.toString();
+        return executeGeminiCall(url, promptBuilder.toString());
+    }
 
+    public GeneratedProblem generateRoadmapProblem(
+            String topic, 
+            String keyword, 
+            String difficulty, 
+            String prevDescription, 
+            String prevSolution, 
+            List<String> existingTitles) {
+        if (!isApiKeyConfigured()) {
+            throw new IllegalStateException("Gemini API key is not configured.");
+        }
+
+        String cleanedKey = cleanApiKey();
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + cleanedKey;
+
+        StringBuilder promptBuilder = new StringBuilder(String.format(
+                "Hãy biên soạn một bài tập lập trình competitive programming với độ khó '%s' bằng tiếng Việt cho chủ đề: '%s' và bối cảnh/từ khóa: '%s'.\n" +
+                "Yêu cầu đề bài phải có tiêu đề, mô tả chi tiết, hướng dẫn đọc dữ liệu đầu vào (Standard Input) và in kết quả ra màn hình (Standard Output).\n" +
+                "Độ khó '%s' yêu cầu:\n" +
+                "- EASY: Thuật toán rất cơ bản, các bài tính toán đơn giản, nhập xuất đơn giản, xử lý mảng/chuỗi cơ bản.\n" +
+                "- MEDIUM: Cấu trúc dữ liệu trung cấp như Stack (ngăn xếp), Queue (hàng đợi), PriorityQueue (hàng đợi ưu tiên), HashSet, HashMap (tối ưu O(1)), hoặc thuật toán tầm trung như Two Pointers, Sliding Window, Tìm kiếm nhị phân, Quy hoạch động cơ bản. Hạn chế lặp lại thuật toán tham lam (Greedy) trừ khi người dùng yêu cầu trực tiếp chủ đề đó.\n" +
+                "- HARD: Thuật toán nâng cao như Đồ thị (Dijkstra, Kruskal, BFS, DFS), các cấu trúc dữ liệu nâng cao (Tree, Segment Tree, Trie, Fenwick Tree), hoặc Quy hoạch động phức tạp tối ưu thời gian chạy.\n" +
+                "Yêu cầu bổ sung:\n" +
+                "- Đa dạng cấu trúc dữ liệu: Bắt buộc chọn cấu trúc dữ liệu tối ưu nhất cho bài toán và hiện thực nó trong mã giải mẫu (ví dụ: dùng HashSet để tìm phần tử duy nhất, HashMap để đếm tần số, Stack để xử lý ngoặc/biểu thức, Queue để xử lý hàng đợi phần tử). Tránh việc giải mọi bài toán bằng mảng thường (array) hoặc Greedy.\n" +
+                "- Xác định rõ ràng các ràng buộc dữ liệu đầu vào (constraints) bằng tiếng Việt (ví dụ: '1 <= N <= 10^5', '1 <= A[i] <= 10^9'). Để hiển thị đẹp mắt trên giao diện web, các công thức toán học và biểu thức chỉ số phải được định dạng bằng ký tự văn bản thường trực quan (ví dụ: dùng H[i], H[i+1], |H[i+1] - H[i]|, abs(x) hoặc x^2), TUYỆT ĐỐI KHÔNG sử dụng định dạng LaTeX phức tạp chứa các ký tự như \\{, \\}, _, ^ (ví dụ như H_{i+1} - H_i) vì giao diện chỉ hiển thị văn bản thường.\n" +
+                "- Đặt giới hạn thời gian (timeLimit tính bằng mili giây, thường là 2000) và giới hạn bộ nhớ (memoryLimit tính bằng MB, thường là 128 hoặc 256) phù hợp cho bài toán.\n" +
+                "- Thiết kế bài tập theo dạng hàm (LeetCode-style) để người dùng chỉ cần hoàn thành một hàm/class Solution mà không cần viết hàm main hay tự đọc xuất dữ liệu. Cụ thể:\n" +
+                "  1. Sinh ra 'userTemplate': Chỉ chứa khai báo class Solution, tên phương thức mẫu, các tham số đầu vào, một giá trị trả về mặc định tượng trưng (ví dụ: return 0; hoặc return null; hoặc return new int[0];) và ghi chú // Code của bạn tại đây. TUYỆT ĐỐI KHÔNG được viết sẵn bất kỳ logic giải thuật hay mã nguồn giải bài tập nào vào trong 'userTemplate'. Hãy đảm bảo mã nguồn trong 'userTemplate' và 'driverCode' phải được định dạng đẹp mắt, thụt lề chuẩn và bắt buộc xuống dòng (sử dụng \\n) đầy đủ cho từng phần khai báo, dấu ngoặc nhọn, và chú thích; tuyệt đối không viết dồn trên một dòng hoặc dùng khoảng trắng thay cho dấu xuống dòng. Bắt buộc khai báo thư viện chuẩn (sử dụng import java.util.*;) ở đầu cả 'userTemplate' và 'driverCode' để người dùng sử dụng được các cấu trúc dữ liệu như HashSet, HashMap, Queue, Stack, v.v. \n" +
+                "  2. Sinh ra 'driverCode': Là một chương trình Java hoàn chỉnh (public class Main) chứa hàm main. Hàm main này sẽ nhận dữ liệu từ Standard Input thông qua Scanner, phân tách/chuyển đổi dữ liệu (ví dụ đọc mảng, đọc số), khởi tạo đối tượng Solution và gọi phương thức của Solution, sau đó in kết quả ra Standard Output. Hãy đảm bảo driverCode có thể tự động chạy khớp hoàn toàn với định dạng testCases đầu vào.\n" +
+                "  3. Sinh ra 'referenceSolution': Là một đoạn mã nguồn giải bài tập hoàn chỉnh, viết bằng ngôn ngữ Java (chứa class Solution được hiện thực đầy đủ, logic giải chuẩn xác tối ưu, có thể có thêm helper class tĩnh lồng bên trong class Solution nếu cần). Lời giải chuẩn này sẽ được hệ thống biên dịch và chạy thử cùng với 'driverCode' trong sandbox để tự động xác thực và thu thập đáp án chuẩn cho các test cases.\n" +
+                "Sinh ra từ 3 đến 5 test cases hợp lệ phục vụ cho việc chấm bài. Trong đó, hãy thiết kế ít nhất 1-2 test cases đặc biệt đại diện cho dữ liệu biên hoặc trường hợp góc (Edge Cases như đầu vào bằng rỗng, giá trị biên cực đại/cực tiểu, hoặc trùng lặp...) và đặt 'isHidden': true để ẩn chúng đi, còn các test cases bình thường khác thì để 'isHidden': false. Lưu ý: Chỉ cần sinh ra 'inputData' cho test cases, không cần sinh ra expectedOutput.",
+                difficulty, topic, keyword, difficulty
+        ));
+
+        if (prevDescription != null && !prevDescription.trim().isEmpty()) {
+            promptBuilder.append("\n\nYÊU CẦU ĐẶC BIỆT (GỐI ĐẦU NỘI DUNG / SCAFFOLDING):\n")
+                    .append("Bài tập này là một phần trong lộ trình học tập tuần tự. Bài tập này BẮT BUỘC phải kế thừa, phát triển hoặc có liên quan mật thiết về giải thuật/nội dung từ bài tập của Node phía trước để người học có thể vận dụng tư duy và nền tảng của bài trước để làm bài này.\n")
+                    .append("- Đề bài của Node phía trước:\n\"\"\"\n").append(prevDescription).append("\n\"\"\"\n")
+                    .append("- Mã giải mẫu (Reference Solution) của Node phía trước:\n\"\"\"\n").append(prevSolution).append("\n\"\"\"\n")
+                    .append("Hãy thiết kế bài này như một sự phát triển/nâng cấp tự nhiên từ bài trước đó (ví dụ: mở rộng số lượng chiều, thay đổi điều kiện tối ưu, thêm ràng buộc thời gian/không gian hoặc áp dụng cấu trúc dữ liệu tương ứng).");
+        }
+
+        if (existingTitles != null && !existingTitles.isEmpty()) {
+            promptBuilder.append("\n\nLƯU Ý QUAN TRỌNG: Để tránh trùng lặp tiêu đề, TUYỆT ĐỐI KHÔNG đặt tiêu đề trùng với các bài sau đây:\n");
+            for (String title : existingTitles) {
+                promptBuilder.append("- ").append(title).append("\n");
+            }
+        }
+
+        return executeGeminiCall(url, promptBuilder.toString());
+    }
+
+    private GeneratedProblem executeGeminiCall(String url, String prompt) {
         try {
             // Build Gemini payload with structured JSON output schema
             Map<String, Object> textPart = Map.of("text", prompt);
             Map<String, Object> parts = Map.of("parts", List.of(textPart));
-            Map<String, Object> contentItem = Map.of("contents", List.of(parts));
 
             // Define schema for structured output (omit expectedOutput from Gemini generation)
             Map<String, Object> testCaseItemSchema = Map.of(

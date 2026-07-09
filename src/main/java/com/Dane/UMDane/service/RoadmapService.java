@@ -10,8 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,13 +20,18 @@ public class RoadmapService {
 
     private final RoadmapNodeRepository roadmapNodeRepository;
     private final SubmissionRepository submissionRepository;
-    private final ProblemService problemService;
 
     @Transactional(readOnly = true)
     public List<RoadmapNodeResponseDTO> getRoadmapNodes(Long userId) {
         List<RoadmapNode> nodes = roadmapNodeRepository.findAllByOrderByNodeIdAsc();
-        return nodes.stream().map(node -> {
+        List<RoadmapNodeResponseDTO> dtos = new ArrayList<>();
+        
+        boolean nextUnlocked = true; // Node 1 is always unlocked
+
+        for (RoadmapNode node : nodes) {
             boolean solved = false;
+            boolean isUnlocked = nextUnlocked;
+
             if (userId != null && node.getProblemId() != null) {
                 solved = submissionRepository.existsByUserIdAndProblemIdAndStatus(
                         userId, 
@@ -34,7 +39,8 @@ public class RoadmapService {
                         SubmissionStatus.ACCEPTED
                 );
             }
-            return RoadmapNodeResponseDTO.builder()
+
+            dtos.add(RoadmapNodeResponseDTO.builder()
                     .nodeId(node.getNodeId())
                     .phase(node.getPhase())
                     .title(node.getTitle())
@@ -43,30 +49,13 @@ public class RoadmapService {
                     .difficulty(node.getDifficulty())
                     .problemId(node.getProblemId())
                     .solved(solved)
-                    .build();
-        }).collect(Collectors.toList());
-    }
+                    .unlocked(isUnlocked)
+                    .build());
 
-    @Transactional
-    public Long generateNodeProblem(Integer nodeId) {
-        RoadmapNode node = roadmapNodeRepository.findById(nodeId)
-                .orElseThrow(() -> new RuntimeException("Không tìm thấy Node tương ứng trong lộ trình!"));
-
-        if (node.getProblemId() != null) {
-            return node.getProblemId();
+            // Next node is unlocked if current node is solved
+            nextUnlocked = solved;
         }
 
-        // Generate the problem via ProblemService
-        log.info("Bắt đầu sinh đề bài tự động cho Roadmap Node {}: topic={}, keyword={}, difficulty={}",
-                nodeId, node.getTopic(), node.getKeyword(), node.getDifficulty());
-        
-        var problemDTO = problemService.generateProblem(node.getTopic(), node.getKeyword(), node.getDifficulty());
-        
-        // Link the generated problem to the node
-        node.setProblemId(problemDTO.getId());
-        roadmapNodeRepository.save(node);
-
-        log.info("Sinh đề bài thành công cho Node {}! Problem ID = {}", nodeId, problemDTO.getId());
-        return problemDTO.getId();
+        return dtos;
     }
 }

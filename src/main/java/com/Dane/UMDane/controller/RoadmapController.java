@@ -7,7 +7,9 @@ import com.Dane.UMDane.service.RoadmapService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -24,21 +26,5 @@ public class RoadmapController {
         Long userId = (userPrincipal != null) ? userPrincipal.getId() : null;
         List<RoadmapNodeResponseDTO> nodes = roadmapService.getRoadmapNodes(userId);
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách lộ trình thành công!", nodes));
-    }
-
-    @PostMapping("/nodes/{nodeId}/generate")
-    public ResponseEntity<ApiResponse<Long>> generateNodeProblem(
-            @AuthenticationPrincipal UserPrincipal userPrincipal,
-            @PathVariable Integer nodeId) {
-        if (userPrincipal == null) {
-            return ResponseEntity.status(401)
-                    .body(new ApiResponse<>(401, "Bạn cần đăng nhập để mở khóa bài tập!", null));
-        }
-        try {
-            Long problemId = roadmapService.generateNodeProblem(nodeId);
-            return ResponseEntity.ok(ApiResponse.success("Mở khóa bài tập thành công!", problemId));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(new ApiResponse<>(400, e.getMessage(), null));
-        }
     }
 }

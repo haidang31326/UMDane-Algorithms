@@ -8,8 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.context.SecurityContextHolder;
 import com.Dane.UMDane.security.UserPrincipal;
-
-import java.util.List;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import java.util.List;
 
@@ -19,6 +18,8 @@ import java.util.List;
 public class ProblemController {
 
     private final ProblemService problemService;
+    private final com.Dane.UMDane.repository.RoadmapNodeRepository roadmapNodeRepository;
+    private final com.Dane.UMDane.repository.SubmissionRepository submissionRepository;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ProblemResponseDTO>>> getAllProblems() {
@@ -36,7 +37,38 @@ public class ProblemController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<ProblemResponseDTO> getProblemById(@PathVariable Long id) {
+    public ResponseEntity<?> getProblemById(
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @PathVariable Long id) {
+        
+        var nodeOpt = roadmapNodeRepository.findByProblemId(id);
+        if (nodeOpt.isPresent()) {
+            var node = nodeOpt.get();
+            if (node.getNodeId() > 1) {
+                if (userPrincipal == null) {
+                    return ResponseEntity.status(401)
+                            .body(new ApiResponse<>(401, "Bạn cần đăng nhập để làm bài tập thuộc lộ trình!", null));
+                }
+                
+                var prevNodeOpt = roadmapNodeRepository.findById(node.getNodeId() - 1);
+                if (prevNodeOpt.isPresent()) {
+                    var prevNode = prevNodeOpt.get();
+                    boolean prevSolved = false;
+                    if (prevNode.getProblemId() != null) {
+                        prevSolved = submissionRepository.existsByUserIdAndProblemIdAndStatus(
+                                userPrincipal.getId(),
+                                prevNode.getProblemId(),
+                                com.Dane.UMDane.entity.SubmissionStatus.ACCEPTED
+                        );
+                    }
+                    if (!prevSolved) {
+                        return ResponseEntity.status(403)
+                                .body(new ApiResponse<>(403, "Bài tập này đang bị khóa! Bạn cần giải quyết bài tập số " + prevNode.getNodeId() + " (" + prevNode.getTitle() + ") trước.", null));
+                    }
+                }
+            }
+        }
+
         ProblemResponseDTO problem = problemService.getProblemById(id);
         return ResponseEntity.ok(problem);
     }

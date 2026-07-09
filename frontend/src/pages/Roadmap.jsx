@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Trophy, Lock, Play, Sparkles, CheckCircle2, ChevronRight } from 'lucide-react'
+import { Trophy, Lock, Play, Sparkles, CheckCircle2 } from 'lucide-react'
 
 export default function Roadmap({ user, showToast }) {
   const [nodes, setNodes] = useState([])
   const [loading, setLoading] = useState(true)
-  const [generatingNodeId, setGeneratingNodeId] = useState(null)
   const navigate = useNavigate()
 
   const fetchRoadmap = async () => {
@@ -60,7 +59,7 @@ export default function Roadmap({ user, showToast }) {
     }
   }
 
-  // Calculate phase progress and locks
+  // Calculate phase progress
   const phaseStats = useMemo(() => {
     const stats = {}
     phases.forEach(phase => {
@@ -72,53 +71,29 @@ export default function Roadmap({ user, showToast }) {
     return stats
   }, [phases])
 
-  // Check if a phase is locked (locked if previous phase is < 50% solved)
-  const isPhaseLocked = (phaseNum) => {
-    if (phaseNum === 1) return false
-    const prevStats = phaseStats[phaseNum - 1]
-    if (!prevStats) return true
-    return prevStats.percentage < 50
-  }
+  // Find the first unlocked but unsolved node to highlight as active mission
+  const activeNode = useMemo(() => {
+    return nodes.find(node => node.unlocked && !node.solved)
+  }, [nodes])
 
-  const handleNodeClick = async (node) => {
-    if (isPhaseLocked(node.phase)) {
-      showToast('Vui lòng hoàn thành ít nhất 50% chặng trước để mở khóa chặng này!', 'error')
+  const handleNodeClick = (node) => {
+    if (!node.unlocked) {
+      showToast('Bài tập này đang bị khóa! Hãy hoàn thành các bài trước đó để mở khóa.', 'error')
       return
     }
 
     if (!user) {
-      showToast('Vui lòng đăng nhập để mở khóa bài tập!', 'error')
+      showToast('Vui lòng đăng nhập để thực hiện thử thách!', 'error')
       navigate('/login')
       return
     }
 
-    if (node.problemId) {
-      // Already generated, redirect directly
-      navigate(`/problem/${node.problemId}`)
+    if (!node.problemId) {
+      showToast('Bài tập này đang trong tiến trình khởi tạo dữ liệu nguồn. Vui lòng quay lại sau ít phút!', 'error')
       return
     }
 
-    // Trigger AI generation
-    setGeneratingNodeId(node.nodeId)
-    try {
-      const response = await fetch(`/api/roadmap/nodes/${node.nodeId}/generate`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${user.token}`
-        }
-      })
-      const data = await response.json()
-      if (response.ok && data.code === 200) {
-        showToast('Mở khóa bài tập thành công!')
-        navigate(`/problem/${data.data}`)
-      } else {
-        showToast(data.message || 'Lỗi khi sinh đề bài bằng AI!', 'error')
-      }
-    } catch (err) {
-      showToast('Lỗi kết nối máy chủ!', 'error')
-    } finally {
-      setGeneratingNodeId(null)
-    }
+    navigate(`/problem/${node.problemId}`)
   }
 
   // Global Progress Stats
@@ -148,7 +123,7 @@ export default function Roadmap({ user, showToast }) {
             <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: 0 }}>UMDane 75: Lộ trình thuật toán</h1>
           </div>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, maxWidth: '600px' }}>
-            Lộ trình học tập chuẩn hóa gồm 75 bài toán sắp xếp tăng dần từ cơ bản đến nâng cao. Đề bài được sinh tự động bằng AI và kiểm thử an toàn qua Docker sandbox.
+            Khám phá 75 thử thách lập trình gối đầu nội dung và nâng cấp độ khó liên tục. Hãy giải bài trước để mở khóa bài tiếp theo.
           </p>
         </div>
 
@@ -168,39 +143,20 @@ export default function Roadmap({ user, showToast }) {
       <div className="phases-list" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         {phases.map((phase) => {
           const stats = phaseStats[phase.phaseNumber]
-          const locked = isPhaseLocked(phase.phaseNumber)
+          // A phase is visibly faded if all its nodes are locked
+          const isPhaseLocked = phase.nodes.every(n => !n.unlocked)
 
           return (
             <div 
               key={phase.phaseNumber} 
-              className={`glass-panel phase-card ${locked ? 'phase-locked' : ''}`}
+              className={`glass-panel phase-card ${isPhaseLocked ? 'phase-locked' : ''}`}
               style={{ 
                 padding: '1.5rem', 
-                opacity: locked ? 0.45 : 1, 
+                opacity: isPhaseLocked ? 0.35 : 1, 
                 transition: 'opacity 0.3s',
                 position: 'relative'
               }}
             >
-              {locked && (
-                <div style={{ 
-                  position: 'absolute', 
-                  top: '1.25rem', 
-                  right: '1.5rem', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.35rem', 
-                  color: '#ef4444', 
-                  fontSize: '0.8rem', 
-                  fontWeight: 700,
-                  background: 'rgba(239, 68, 68, 0.1)',
-                  padding: '0.25rem 0.6rem',
-                  borderRadius: '99px'
-                }}>
-                  <Lock size={12} />
-                  Bị khóa
-                </div>
-              )}
-
               {/* Phase Title Info */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', marginBottom: '1.5rem' }}>
                 <div style={{ textAlign: 'left' }}>
@@ -208,12 +164,12 @@ export default function Roadmap({ user, showToast }) {
                     {phase.name}
                   </h3>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>
-                    Hãy hoàn thành tối thiểu 50% chặng này để kích hoạt chặng sau.
+                    Giải lần lượt từng thử thách để mở khóa nội dung tiếp theo của chặng này.
                   </p>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: locked ? 'var(--text-muted)' : '#3b82f6' }}>
-                    Tiến độ: {stats.solved}/{stats.total} bài ({stats.percentage}%)
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: isPhaseLocked ? 'var(--text-muted)' : '#3b82f6' }}>
+                    Hoàn thành: {stats.solved}/{stats.total} bài ({stats.percentage}%)
                   </span>
                 </div>
               </div>
@@ -221,19 +177,22 @@ export default function Roadmap({ user, showToast }) {
               {/* Grid of Nodes */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: '1rem' }}>
                 {phase.nodes.map((node) => {
-                  const isNodeGenerating = generatingNodeId === node.nodeId
+                  const isActive = activeNode?.nodeId === node.nodeId
                   let btnClass = 'node-btn'
                   let titleTip = `${node.title}\n[Chủ đề: ${node.topic} | Độ khó: ${node.difficulty}]`
                   
-                  if (node.solved) {
+                  if (!node.unlocked) {
+                    btnClass += ' node-locked'
+                    titleTip += '\n- Đang bị khóa 🔒'
+                  } else if (node.solved) {
                     btnClass += ' node-solved'
                     titleTip += '\n- Đã hoàn thành (AC) ✅'
-                  } else if (node.problemId) {
-                    btnClass += ' node-generated'
-                    titleTip += '\n- Đang mở khóa (Nhấp để giải)'
+                  } else if (isActive) {
+                    btnClass += ' node-active-mission'
+                    titleTip += '\n- Thử thách hiện tại (Click để giải!) 🎯'
                   } else {
-                    btnClass += ' node-ungenerated'
-                    titleTip += '\n- Nhấp để AI khởi tạo đề bài ❄️'
+                    btnClass += ' node-generated'
+                    titleTip += '\n- Đã mở khóa (Click để giải)'
                   }
 
                   return (
@@ -241,7 +200,6 @@ export default function Roadmap({ user, showToast }) {
                       key={node.nodeId}
                       className={btnClass}
                       onClick={() => handleNodeClick(node)}
-                      disabled={generatingNodeId !== null}
                       title={titleTip}
                       style={{
                         display: 'flex',
@@ -251,10 +209,11 @@ export default function Roadmap({ user, showToast }) {
                         aspectRatio: '1',
                         borderRadius: '12px',
                         border: '1px solid var(--border-color)',
-                        cursor: locked ? 'not-allowed' : 'pointer',
+                        cursor: node.unlocked ? 'pointer' : 'not-allowed',
                         padding: '0.5rem',
                         position: 'relative',
                         transition: 'transform 0.2s, box-shadow 0.2s',
+                        opacity: node.unlocked ? 1 : 0.4
                       }}
                     >
                       {/* Node Number */}
@@ -264,10 +223,10 @@ export default function Roadmap({ user, showToast }) {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}>
                         {node.solved ? (
                           <CheckCircle2 size={12} style={{ color: '#10b981' }} />
-                        ) : node.problemId ? (
-                          <Play size={10} style={{ color: '#f59e0b' }} />
+                        ) : !node.unlocked ? (
+                          <Lock size={10} style={{ color: 'var(--text-muted)' }} />
                         ) : (
-                          <Sparkles size={10} style={{ color: '#a78bfa' }} />
+                          <Play size={10} style={{ color: '#3b82f6' }} />
                         )}
                         <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 600 }}>
                           {node.difficulty}
@@ -298,35 +257,6 @@ export default function Roadmap({ user, showToast }) {
           )
         })}
       </div>
-
-      {/* AI Generating Loading Overlay */}
-      {generatingNodeId !== null && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          background: 'rgba(15, 23, 42, 0.85)',
-          backdropFilter: 'blur(8px)',
-          zIndex: 9999,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '2rem'
-        }}>
-          <div className="spinner-glow" style={{ marginBottom: '1.5rem' }}>
-            <Sparkles size={48} className="spin-slow" style={{ color: '#a78bfa' }} />
-          </div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ffffff', margin: '0 0 0.5rem 0' }}>
-            Đang sinh đề bài & xác thực tự động...
-          </h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, maxWidth: '400px', textAlign: 'center', lineHeight: '1.5' }}>
-            AI đang biên soạn thử thách thuật toán chuẩn hóa. Trình biên dịch đang kiểm thử lời giải mẫu qua Docker sandbox để xác thực đáp án tối ưu. Vui lòng đợi trong giây lát!
-          </p>
-        </div>
-      )}
     </div>
   )
 }

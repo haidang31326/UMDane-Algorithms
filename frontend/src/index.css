@@ -802,15 +802,32 @@ body {
   box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
 }
 
-.node-btn.node-ungenerated {
-  border-style: dashed !important;
-  border-color: rgba(167, 139, 250, 0.4) !important;
-  background: rgba(167, 139, 250, 0.02) !important;
+.node-btn.node-locked {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+  background: rgba(255, 255, 255, 0.02) !important;
+  cursor: not-allowed !important;
 }
 
-.node-btn.node-ungenerated:hover {
+.node-btn.node-locked:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.node-btn.node-active-mission {
   border-color: #a78bfa !important;
-  box-shadow: 0 0 12px rgba(167, 139, 250, 0.25);
+  background: rgba(167, 139, 250, 0.06) !important;
+  box-shadow: 0 0 15px rgba(167, 139, 250, 0.5);
+  animation: missionPulse 2s infinite ease-in-out;
+}
+
+.node-btn.node-active-mission:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 0 25px rgba(167, 139, 250, 0.8);
+}
+
+@keyframes missionPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(167, 139, 250, 0.3); }
+  50% { transform: scale(1.05); box-shadow: 0 0 20px rgba(167, 139, 250, 0.7); }
 }
 
 .spin-slow {

@@ -14,4 +14,5 @@ public class RoadmapNodeResponseDTO {
     private String difficulty;
     private Long problemId;
     private boolean solved;
+    private boolean unlocked;
 }
