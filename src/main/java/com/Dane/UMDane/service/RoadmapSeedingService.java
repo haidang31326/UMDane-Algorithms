@@ -86,15 +86,33 @@ public class RoadmapSeedingService {
                         }
                     }
 
-                    // Call AI to generate roadmap problem
-                    GeminiAiService.GeneratedProblem aiProb = geminiAiService.generateRoadmapProblem(
-                            node.getTopic(), 
-                            node.getKeyword(), 
-                            node.getDifficulty(), 
-                            prevDescription, 
-                            prevSolution, 
-                            existingTitles
-                    );
+                    // Call AI to generate roadmap problem with retries
+                    GeminiAiService.GeneratedProblem aiProb = null;
+                    int retries = 0;
+                    int maxRetries = 3;
+                    while (retries < maxRetries) {
+                        try {
+                            aiProb = geminiAiService.generateRoadmapProblem(
+                                    node.getTopic(), 
+                                    node.getKeyword(), 
+                                    node.getDifficulty(), 
+                                    prevDescription, 
+                                    prevSolution, 
+                                    existingTitles
+                            );
+                            break; // Success, break out of retry loop
+                        } catch (Exception e) {
+                            retries++;
+                            if (retries < maxRetries) {
+                                log.warn("Gặp lỗi khi sinh đề cho Node {} (Lần {}/{}). Đang ngủ 15 giây để thử lại... Lỗi: {}", 
+                                        node.getNodeId(), retries, maxRetries, e.getMessage());
+                                currentStatusMessage = "Gặp lỗi (" + e.getMessage() + ") ở Node " + node.getNodeId() + ", đang chờ thử lại...";
+                                Thread.sleep(15000); // Sleep 15 seconds
+                            } else {
+                                throw e; // Max retries reached, throw the error
+                            }
+                        }
+                    }
 
                     // Compile & validate using sandbox
                     List<TestCase> testCases = new ArrayList<>();
