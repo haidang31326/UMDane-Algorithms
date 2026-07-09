@@ -18,6 +18,13 @@ export default function Navbar({ user, onLogout }) {
           Bài tập
         </NavLink>
 
+        <NavLink 
+          to="/roadmap" 
+          className={({ isActive }) => isActive ? "nav-link active" : "nav-link"}
+        >
+          Lộ trình
+        </NavLink>
+
         {user && (
           <NavLink 
             to="/profile" 

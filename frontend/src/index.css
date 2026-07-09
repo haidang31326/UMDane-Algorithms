@@ -755,3 +755,78 @@ body {
   height: 100%;
   border-radius: 99px;
 }
+
+/* Roadmap Styles */
+.roadmap-container {
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.phase-card {
+  border: 1px solid var(--border-color);
+  background: rgba(30, 41, 59, 0.4);
+}
+
+.phase-locked {
+  pointer-events: none;
+}
+
+.node-btn {
+  background: rgba(15, 23, 42, 0.6);
+  color: var(--text-main);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.node-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.node-btn.node-solved {
+  border-color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.08) !important;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+.node-btn.node-solved:hover {
+  box-shadow: 0 0 18px rgba(16, 185, 129, 0.35);
+}
+
+.node-btn.node-generated {
+  border-color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.05) !important;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.1);
+}
+
+.node-btn.node-generated:hover {
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+}
+
+.node-btn.node-ungenerated {
+  border-style: dashed !important;
+  border-color: rgba(167, 139, 250, 0.4) !important;
+  background: rgba(167, 139, 250, 0.02) !important;
+}
+
+.node-btn.node-ungenerated:hover {
+  border-color: #a78bfa !important;
+  box-shadow: 0 0 12px rgba(167, 139, 250, 0.25);
+}
+
+.spin-slow {
+  animation: spin 3s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinner-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 5px rgba(167, 139, 250, 0.4)); }
+  50% { transform: scale(1.1); filter: drop-shadow(0 0 20px rgba(167, 139, 250, 0.8)); }
+}

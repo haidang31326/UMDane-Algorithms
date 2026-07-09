@@ -13,4 +13,6 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
 
     @Query("SELECT COUNT(DISTINCT s.problemId) FROM Submission s WHERE s.userId = :userId AND s.status = com.Dane.UMDane.entity.SubmissionStatus.ACCEPTED AND s.createdAt >= :start AND s.createdAt <= :end")
     long countSolvedProblemsBetween(@Param("userId") Long userId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    boolean existsByUserIdAndProblemIdAndStatus(Long userId, Long problemId, com.Dane.UMDane.entity.SubmissionStatus status);
 }

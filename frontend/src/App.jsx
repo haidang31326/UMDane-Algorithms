@@ -6,6 +6,7 @@ import ProblemDetails from './pages/ProblemDetails.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
 import Profile from './pages/Profile.jsx'
+import Roadmap from './pages/Roadmap.jsx'
 
 export default function App() {
   const [user, setUser] = useState(null)
@@ -85,6 +86,10 @@ export default function App() {
             <Route 
               path="/profile" 
               element={user ? <Profile user={user} showToast={showToast} /> : <Navigate to="/login" />} 
+            />
+            <Route 
+              path="/roadmap" 
+              element={<Roadmap user={user} showToast={showToast} />} 
             />
             <Route 
               path="/problem/:id" 
