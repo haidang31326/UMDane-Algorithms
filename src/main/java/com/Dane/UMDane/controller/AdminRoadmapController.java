@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/roadmap/admin")
+@RequestMapping("/api/admin/roadmap")
 @RequiredArgsConstructor
 public class AdminRoadmapController {
 
