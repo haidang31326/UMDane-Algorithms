@@ -67,7 +67,9 @@ public class Solution {
   useEffect(() => {
     const fetchProblem = async () => {
       try {
-        const response = await fetch(`/api/problems/${id}`)
+        const response = await fetch(`/api/problems/${id}`, {
+          headers: user ? { 'Authorization': `Bearer ${user.token}` } : {}
+        })
         if (response.ok) {
           const data = await response.json()
           setProblem(data)
@@ -82,7 +84,12 @@ public class Solution {
             setRunInput(data.sampleTestCases[0].inputData)
           }
         } else {
-          showToast('Không tìm thấy bài tập!', 'error')
+          try {
+            const errData = await response.json()
+            showToast(errData.message || 'Không tìm thấy bài tập!', 'error')
+          } catch (e) {
+            showToast('Không tìm thấy bài tập!', 'error')
+          }
         }
       } catch (err) {
         showToast('Lỗi khi tải thông tin bài tập!', 'error')

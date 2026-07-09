@@ -27,7 +27,7 @@ export default function App() {
     window.fetch = async (...args) => {
       try {
         const response = await originalFetch(...args)
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401) {
           const userObj = localStorage.getItem('umdane_user')
           if (userObj) {
             localStorage.removeItem('umdane_user')
