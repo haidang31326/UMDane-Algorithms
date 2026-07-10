@@ -140,6 +140,11 @@ public class RoadmapSeedingService {
                         throw new RuntimeException("Mã giải chuẩn bị lỗi biên dịch cho Node " + node.getNodeId() + ": " + sandboxResults.get(0).getErrorOutput());
                     }
 
+                    // Verify that the reference solution succeeded on all test cases
+                    if (sandboxResults.size() < testCases.size()) {
+                        throw new RuntimeException("Mã giải mẫu bị lỗi Runtime hoặc chạy quá thời gian (TLE) trên một số test cases mẫu.");
+                    }
+
                     // Set outputs from execution
                     for (int i = 0; i < testCases.size(); i++) {
                         TestCase tc = testCases.get(i);
