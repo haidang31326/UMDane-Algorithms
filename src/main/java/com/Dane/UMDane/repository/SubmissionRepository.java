@@ -15,4 +15,6 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     long countSolvedProblemsBetween(@Param("userId") Long userId, @Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 
     boolean existsByUserIdAndProblemIdAndStatus(Long userId, Long problemId, com.Dane.UMDane.entity.SubmissionStatus status);
+
+    java.util.List<Submission> findByUserId(Long userId, org.springframework.data.domain.Sort sort);
 }

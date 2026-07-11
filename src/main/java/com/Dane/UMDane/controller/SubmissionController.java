@@ -13,6 +13,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.Dane.UMDane.security.UserPrincipal;
 import java.util.List;
 
 @RestController
@@ -35,8 +37,14 @@ public class SubmissionController {
     }
 
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Submission>>> getRecentSubmissions() {
-        List<Submission> submissions = submissionRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
+    public ResponseEntity<ApiResponse<List<Submission>>> getRecentSubmissions(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        List<Submission> submissions;
+        if (userPrincipal != null) {
+            submissions = submissionRepository.findByUserId(userPrincipal.getId(), Sort.by(Sort.Direction.DESC, "id"));
+        } else {
+            submissions = List.of();
+        }
         return ResponseEntity.ok(ApiResponse.success("Lấy danh sách bài nộp thành công!", submissions));
     }
 }
