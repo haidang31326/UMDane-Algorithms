@@ -95,7 +95,7 @@ public class RoadmapSeedingService {
                     // Call AI to generate roadmap problem with retries
                     GeminiAiService.GeneratedProblem aiProb = null;
                     int retries = 0;
-                    int maxRetries = 3;
+                    int maxRetries = 5;
                     while (retries < maxRetries) {
                         try {
                             aiProb = geminiAiService.generateRoadmapProblem(
