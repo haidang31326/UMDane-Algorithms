@@ -29,10 +29,21 @@ public class ProblemService {
     private final UserDeletedProblemRepository userDeletedProblemRepository;
     private final GeminiAiService geminiAiService;
     private final DockerSandboxService sandboxService;
+    private final com.Dane.UMDane.repository.RoadmapNodeRepository roadmapNodeRepository;
     private final Random random = new Random();
 
     public List<ProblemResponseDTO> getAllProblems(Long userId) {
         List<Problem> problems = problemRepository.findAll();
+        
+        List<Long> roadmapProblemIds = roadmapNodeRepository.findAll().stream()
+                .map(com.Dane.UMDane.entity.RoadmapNode::getProblemId)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+
+        problems = problems.stream()
+                .filter(p -> !roadmapProblemIds.contains(p.getId()))
+                .toList();
+
         if (userId != null) {
             List<Long> deletedProblemIds = userDeletedProblemRepository.findProblemIdsByUserId(userId);
             problems = problems.stream()
@@ -46,6 +57,15 @@ public class ProblemService {
 
     public ProblemResponseDTO getRandomProblemByVibe(String topic, String keyword) {
         List<Problem> problems = problemRepository.findByTopicAndKeyword(topic, keyword);
+        
+        List<Long> roadmapProblemIds = roadmapNodeRepository.findAll().stream()
+                .map(com.Dane.UMDane.entity.RoadmapNode::getProblemId)
+                .filter(java.util.Objects::nonNull)
+                .toList();
+
+        problems = problems.stream()
+                .filter(p -> !roadmapProblemIds.contains(p.getId()))
+                .toList();
 
         if (problems.isEmpty()) {
             throw new RuntimeException("Chưa có bài tập nào tương ứng chủ đề và từ khóa này!");

@@ -64,6 +64,12 @@ public class RoadmapSeedingService {
                     // Check if node is already seeded
                     if (node.getProblemId() != null && problemRepository.existsById(node.getProblemId())) {
                         log.info("Node {} đã có đề bài ID = {}, bỏ qua sinh lại.", node.getNodeId(), node.getProblemId());
+                        Problem existingProb = problemRepository.findById(node.getProblemId()).orElse(null);
+                        if (existingProb != null && !node.getDifficulty().equalsIgnoreCase(existingProb.getDifficulty())) {
+                            existingProb.setDifficulty(node.getDifficulty());
+                            problemRepository.save(existingProb);
+                            log.info("Cập nhật lại độ khó cho bài toán Node {} thành {}", node.getNodeId(), node.getDifficulty());
+                        }
                         seededCount++;
                         continue;
                     }
@@ -151,13 +157,13 @@ public class RoadmapSeedingService {
                         tc.setExpectedOutput(sandboxResults.get(i).getOutput() != null ? sandboxResults.get(i).getOutput().trim() : "");
                     }
 
-                    // Save problem and test cases
                     Problem problem = Problem.builder()
                             .topic(node.getTopic())
                             .keyword(node.getKeyword())
                             .title(aiProb.getTitle())
                             .description(aiProb.getDescription())
                             .hint(aiProb.getHint())
+                            .difficulty(node.getDifficulty())
                             .constraints(aiProb.getConstraints())
                             .timeLimit(aiProb.getTimeLimit())
                             .memoryLimit(aiProb.getMemoryLimit())
