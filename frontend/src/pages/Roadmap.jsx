@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Trophy, Lock, Play, Sparkles, CheckCircle2 } from 'lucide-react'
 
@@ -6,6 +6,11 @@ export default function Roadmap({ user, showToast }) {
   const [nodes, setNodes] = useState([])
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+
+  // Seeder Admin Panel states
+  const [seederStatus, setSeederStatus] = useState(null)
+  const [seedingLoading, setSeedingLoading] = useState(false)
+  const prevSeededCountRef = useRef(0)
 
   const fetchRoadmap = async () => {
     try {
@@ -25,9 +30,65 @@ export default function Roadmap({ user, showToast }) {
     }
   }
 
+  const fetchSeederStatus = async () => {
+    if (!user || user.role !== 'ADMIN') return
+    try {
+      const response = await fetch('/api/admin/roadmap/seed-status', {
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      })
+      const data = await response.json()
+      if (response.ok && data.code === 200) {
+        setSeederStatus(data.data)
+      }
+    } catch (err) {
+      console.error('Error fetching seeder status:', err)
+    }
+  }
+
+  const handleStartSeeding = async () => {
+    if (!user || user.role !== 'ADMIN') return
+    setSeedingLoading(true)
+    try {
+      const response = await fetch('/api/admin/roadmap/seed-start', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      })
+      const data = await response.json()
+      if (response.ok && data.code === 200) {
+        showToast(data.message)
+        fetchSeederStatus()
+      } else {
+        showToast(data.message || 'Lỗi khi kích hoạt seeder!', 'error')
+      }
+    } catch (err) {
+      showToast('Lỗi kết nối máy chủ!', 'error')
+    } finally {
+      setSeedingLoading(false)
+    }
+  }
+
   useEffect(() => {
     fetchRoadmap()
   }, [user])
+
+  // Polling seeder status for ADMIN users
+  useEffect(() => {
+    if (user && user.role === 'ADMIN') {
+      fetchSeederStatus()
+      const interval = setInterval(() => {
+        fetchSeederStatus()
+      }, 3000)
+      return () => clearInterval(interval)
+    }
+  }, [user])
+
+  // Auto-refresh roadmap nodes if seeder progress increments
+  useEffect(() => {
+    if (seederStatus && seederStatus.seededCount !== prevSeededCountRef.current) {
+      prevSeededCountRef.current = seederStatus.seededCount
+      fetchRoadmap()
+    }
+  }, [seederStatus])
 
   // Group nodes by phase
   const phases = useMemo(() => {
@@ -138,6 +199,56 @@ export default function Roadmap({ user, showToast }) {
           </div>
         </div>
       </div>
+
+      {/* Admin Seeder Dashboard */}
+      {user && user.role === 'ADMIN' && (
+        <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '2rem', border: '1px solid rgba(167, 139, 250, 0.25)', background: 'rgba(167, 139, 250, 0.02)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1.5rem' }}>
+            <div style={{ textAlign: 'left', flex: 1, minWidth: '260px' }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#a78bfa' }}>
+                <Sparkles size={18} />
+                Bảng điều khiển Seeder Lộ trình (Admin)
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0.35rem 0 0 0', lineHeight: 1.4 }}>
+                Trạng thái: <strong style={{ color: seederStatus?.active ? '#10b981' : '#ef4444' }}>{seederStatus?.active ? 'ĐANG CHẠY NGẦM' : 'ĐANG DỪNG'}</strong>
+                {seederStatus?.statusMessage && (
+                  <span style={{ color: 'var(--text-main)', marginLeft: '0.5rem' }}>
+                    — {seederStatus.statusMessage}
+                  </span>
+                )}
+              </p>
+            </div>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+              {seederStatus && (
+                <div style={{ textAlign: 'right', minWidth: '140px' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 700 }}>
+                    Tiến độ: <span style={{ color: '#a78bfa' }}>{seederStatus.seededCount}/75 bài</span>
+                  </div>
+                  <div style={{ width: '120px', height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '99px', overflow: 'hidden', marginTop: '0.35rem', marginLeft: 'auto' }}>
+                    <div style={{ height: '100%', width: `${Math.round((seederStatus.seededCount/75)*100)}%`, background: '#a78bfa', borderRadius: '99px' }}></div>
+                  </div>
+                </div>
+              )}
+              <button 
+                className="btn btn-primary" 
+                onClick={handleStartSeeding} 
+                disabled={seedingLoading || seederStatus?.active}
+                style={{ 
+                  padding: '0.5rem 1.25rem', 
+                  fontSize: '0.8rem', 
+                  background: '#a78bfa', 
+                  borderColor: '#a78bfa', 
+                  color: '#0f172a',
+                  fontWeight: 700
+                }}
+              >
+                {seederStatus?.active ? 'Đang sinh đề...' : 'Bắt đầu sinh đề'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* List of Phases */}
       <div className="phases-list" style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
