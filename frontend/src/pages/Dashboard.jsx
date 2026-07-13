@@ -51,6 +51,13 @@ export default function Dashboard({ user, showToast }) {
   const [difficulty, setDifficulty] = useState('MEDIUM')
   const [generating, setGenerating] = useState(false)
 
+  // Yesterday's Logic Review states
+  const [yesterdayReviews, setYesterdayReviews] = useState([])
+  const [loadingReviews, setLoadingReviews] = useState(true)
+  const [currentReviewIdx, setCurrentReviewIdx] = useState(0)
+  const [selectedAnswer, setSelectedAnswer] = useState(null)
+  const [quizChecked, setQuizChecked] = useState(false)
+
   const [expandedTopics, setExpandedTopics] = useState({})
 
   const toggleTopic = (topicName) => {
@@ -161,9 +168,30 @@ export default function Dashboard({ user, showToast }) {
     }
   }
 
+  const fetchYesterdayReviews = async () => {
+    if (!user) {
+      setLoadingReviews(false)
+      return
+    }
+    try {
+      const response = await fetch('/api/problems/yesterday-review', {
+        headers: { 'Authorization': `Bearer ${user.token}` }
+      })
+      const data = await response.json()
+      if (response.ok && data.code === 200) {
+        setYesterdayReviews(data.data)
+      }
+    } catch (err) {
+      console.error('Error fetching yesterday reviews:', err)
+    } finally {
+      setLoadingReviews(false)
+    }
+  }
+
   useEffect(() => {
     fetchProblems()
     fetchSubmissions()
+    fetchYesterdayReviews()
 
     // Poll submissions every 3 seconds to support live updates
     const interval = setInterval(() => {
@@ -300,6 +328,227 @@ export default function Dashboard({ user, showToast }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
+      {/* Yesterday's Active Recall Review Carousel */}
+      {user && yesterdayReviews.length > 0 && (
+        <div className="glass-panel card" style={{ marginBottom: 0, border: '1px solid rgba(167, 139, 250, 0.25)', boxShadow: '0 0 20px rgba(167, 139, 250, 0.08)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+            <h2 className="card-title" style={{ color: '#a78bfa', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Sparkles size={20} />
+              Nhật Ký Ôn Tập Tư Duy Thuật Toán (Hôm qua)
+            </h2>
+            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+              {yesterdayReviews.map((_, idx) => (
+                <div 
+                  key={idx} 
+                  style={{ 
+                    width: '6px', 
+                    height: '6px', 
+                    borderRadius: '50%', 
+                    background: idx === currentReviewIdx ? '#a78bfa' : 'rgba(255,255,255,0.2)',
+                    transition: 'all 0.3s ease'
+                  }} 
+                />
+              ))}
+            </div>
+          </div>
+          
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem', textAlign: 'left' }}>
+            Hôm qua bạn đã xuất sắc giải được <strong>{yesterdayReviews.length} bài</strong>. Hãy dành 30 giây ôn lại bản chất thuật toán để khắc sâu kiến thức:
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '8px' }}>
+            
+            {/* Header info */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ textAlign: 'left' }}>
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
+                  <Link to={`/problems/${yesterdayReviews[currentReviewIdx].problemId}`} style={{ color: 'var(--text-main)', textDecoration: 'none' }} className="hover-highlight">
+                    {yesterdayReviews[currentReviewIdx].title}
+                  </Link>
+                </h3>
+                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem' }}>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    padding: '0.15rem 0.4rem',
+                    borderRadius: '4px',
+                    background: 'rgba(59, 130, 246, 0.15)',
+                    color: '#60a5fa',
+                    border: '1px solid rgba(59, 130, 246, 0.3)'
+                  }}>
+                    {getNormalizedTopicName(yesterdayReviews[currentReviewIdx].topic)}
+                  </span>
+                  <span style={{
+                    fontSize: '0.7rem',
+                    padding: '0.15rem 0.4rem',
+                    borderRadius: '4px',
+                    background: yesterdayReviews[currentReviewIdx].difficulty === 'EASY' ? 'rgba(16, 185, 129, 0.15)' : 
+                                yesterdayReviews[currentReviewIdx].difficulty === 'MEDIUM' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                    color: yesterdayReviews[currentReviewIdx].difficulty === 'EASY' ? '#34d399' : 
+                           yesterdayReviews[currentReviewIdx].difficulty === 'MEDIUM' ? '#fbbf24' : '#f87171',
+                    border: yesterdayReviews[currentReviewIdx].difficulty === 'EASY' ? '1px solid rgba(16, 185, 129, 0.3)' : 
+                            yesterdayReviews[currentReviewIdx].difficulty === 'MEDIUM' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
+                  }}>
+                    {yesterdayReviews[currentReviewIdx].difficulty}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Core Insight Card */}
+            <div style={{ 
+              background: 'rgba(167, 139, 250, 0.03)', 
+              borderLeft: '4px solid #a78bfa', 
+              padding: '0.85rem 1rem', 
+              borderRadius: '0 8px 8px 0',
+              textAlign: 'left'
+            }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                💡 Ý TƯỞNG CỐT LÕI (CORE INSIGHT)
+              </div>
+              <div style={{ fontSize: '0.9rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
+                {yesterdayReviews[currentReviewIdx].keyInsight}
+              </div>
+            </div>
+
+            {/* Thinking steps */}
+            <div style={{ textAlign: 'left' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                👣 CÁC BƯỚC SUY LUẬN
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                {yesterdayReviews[currentReviewIdx].thinkingSteps?.map((step, sIdx) => (
+                  <li key={sIdx}>{step}</li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Active Recall Quiz */}
+            <div style={{ 
+              marginTop: '0.5rem',
+              paddingTop: '1rem',
+              borderTop: '1px solid rgba(255,255,255,0.06)',
+              textAlign: 'left'
+            }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.65rem' }}>
+                ❓ Câu hỏi gợi nhớ: {yesterdayReviews[currentReviewIdx].quizQuestion}
+              </div>
+              
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                {yesterdayReviews[currentReviewIdx].quizOptions?.map((option, optIdx) => {
+                  let btnBg = 'rgba(255,255,255,0.03)'
+                  let btnBorder = '1px solid rgba(255,255,255,0.08)'
+                  let btnColor = 'var(--text-main)'
+
+                  if (quizChecked) {
+                    const isCorrectOpt = optIdx === yesterdayReviews[currentReviewIdx].quizCorrectAnswerIdx
+                    const isSelectedOpt = optIdx === selectedAnswer
+                    
+                    if (isCorrectOpt) {
+                      btnBg = 'rgba(16, 185, 129, 0.15)'
+                      btnBorder = '1px solid rgba(16, 185, 129, 0.4)'
+                      btnColor = '#34d399'
+                    } else if (isSelectedOpt) {
+                      btnBg = 'rgba(239, 68, 68, 0.15)'
+                      btnBorder = '1px solid rgba(239, 68, 68, 0.4)'
+                      btnColor = '#f87171'
+                    }
+                  } else {
+                    if (selectedAnswer === optIdx) {
+                      btnBg = 'rgba(167, 139, 250, 0.1)'
+                      btnBorder = '1px solid rgba(167, 139, 250, 0.4)'
+                    }
+                  }
+
+                  return (
+                    <button
+                      key={optIdx}
+                      disabled={quizChecked}
+                      onClick={() => setSelectedAnswer(optIdx)}
+                      style={{
+                        padding: '0.65rem 1rem',
+                        borderRadius: '6px',
+                        background: btnBg,
+                        border: btnBorder,
+                        color: btnColor,
+                        textAlign: 'left',
+                        fontSize: '0.85rem',
+                        cursor: quizChecked ? 'default' : 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        width: '100%'
+                      }}
+                      className={!quizChecked ? "hover-glass" : ""}
+                    >
+                      <span>{option}</span>
+                      {quizChecked && optIdx === yesterdayReviews[currentReviewIdx].quizCorrectAnswerIdx && (
+                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>✓ Đáp án đúng</span>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Check answer / Next action */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', gap: '1rem', flexWrap: 'wrap' }}>
+                <div style={{ flex: 1, minWidth: '200px' }}>
+                  {!quizChecked ? (
+                    <button
+                      disabled={selectedAnswer === null}
+                      onClick={() => setQuizChecked(true)}
+                      style={{
+                        padding: '0.5rem 1.25rem',
+                        borderRadius: '6px',
+                        background: 'linear-gradient(135deg, #a78bfa, #7c3aed)',
+                        color: '#ffffff',
+                        border: 'none',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        cursor: selectedAnswer === null ? 'not-allowed' : 'pointer',
+                        opacity: selectedAnswer === null ? 0.5 : 1,
+                        transition: 'all 0.2s ease'
+                      }}
+                    >
+                      Kiểm tra đáp án
+                    </button>
+                  ) : (
+                    <div style={{ fontSize: '0.85rem', color: '#a7f3d0', background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.15)', padding: '0.5rem 1rem', borderRadius: '6px' }}>
+                      💡 <strong>Giải thích:</strong> {yesterdayReviews[currentReviewIdx].quizExplanation}
+                    </div>
+                  )}
+                </div>
+
+                {yesterdayReviews.length > 1 && (
+                  <button
+                    onClick={() => {
+                      setSelectedAnswer(null)
+                      setQuizChecked(false)
+                      setCurrentReviewIdx((prev) => (prev + 1) % yesterdayReviews.length)
+                    }}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: '6px',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid rgba(255,255,255,0.1)',
+                      color: 'var(--text-main)',
+                      fontSize: '0.85rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    className="hover-glass"
+                  >
+                    {currentReviewIdx === yesterdayReviews.length - 1 ? 'Quay lại bài đầu' : 'Bài tiếp theo →'}
+                  </button>
+                )}
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      )}
+
       {/* AI Problem Generator Form - Only shown for logged-in users */}
       {user && (
         <div className="glass-panel card" style={{ marginBottom: 0 }}>
