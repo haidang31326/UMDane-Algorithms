@@ -171,10 +171,10 @@ public class Solution {
       const data = await response.json()
       if (response.ok && data.code === 200) {
         setResult(data.data)
-        if (data.data.status === 'ACCEPTED') {
+        if (data.data.submission.status === 'ACCEPTED') {
           showToast('Chúc mừng! Bài giải chính xác (AC).')
         } else {
-          showToast(`Kết quả: ${data.data.status}`, 'error')
+          showToast(`Kết quả: ${data.data.submission.status}`, 'error')
         }
       } else {
         showToast(data.message || 'Lỗi khi gửi code!', 'error')
@@ -227,6 +227,102 @@ public class Solution {
     } finally {
       setRunning(false)
     }
+  }
+
+  const renderDistributionChart = (distribution, userRuntime) => {
+    const bins = Object.entries(distribution)
+      .map(([rt, cnt]) => ({ runtime: parseInt(rt), count: cnt }))
+      .sort((a, b) => a.runtime - b.runtime)
+
+    if (bins.length === 0) return null
+
+    const maxCount = Math.max(...bins.map(b => b.count), 1)
+    const svgWidth = 500
+    const svgHeight = 160
+    const paddingLeft = 40
+    const paddingRight = 40
+    const paddingTop = 30
+    const paddingBottom = 30
+
+    const graphWidth = svgWidth - paddingLeft - paddingRight
+    const graphHeight = svgHeight - paddingTop - paddingBottom
+
+    const totalBars = bins.length
+    const barWidth = Math.min(50, Math.max(8, Math.floor(graphWidth / (totalBars || 1)) - 6))
+    const gap = totalBars <= 1 ? 0 : (graphWidth - (barWidth * totalBars)) / (totalBars - 1)
+
+    return (
+      <div style={{ width: '100%', overflowX: 'auto', display: 'flex', justifyContent: 'center', margin: '0.5rem 0' }}>
+        <svg viewBox={`0 0 ${svgWidth} ${svgHeight}`} width="100%" maxWidth="460px" height="160px" style={{ overflow: 'visible' }}>
+          <defs>
+            <linearGradient id="userBarGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#a78bfa" />
+              <stop offset="100%" stopColor="#7c3aed" />
+            </linearGradient>
+            <linearGradient id="otherBarGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="rgba(255, 255, 255, 0.15)" />
+              <stop offset="100%" stopColor="rgba(255, 255, 255, 0.03)" />
+            </linearGradient>
+          </defs>
+
+          {/* Grid lines */}
+          <line x1={paddingLeft} y1={paddingTop} x2={svgWidth - paddingRight} y2={paddingTop} stroke="rgba(255, 255, 255, 0.03)" strokeWidth="1" />
+          <line x1={paddingLeft} y1={paddingTop + graphHeight / 2} x2={svgWidth - paddingRight} y2={paddingTop + graphHeight / 2} stroke="rgba(255, 255, 255, 0.03)" strokeWidth="1" />
+          <line x1={paddingLeft} y1={svgHeight - paddingBottom} x2={svgWidth - paddingRight} y2={svgHeight - paddingBottom} stroke="rgba(255, 255, 255, 0.1)" strokeWidth="1" />
+
+          {/* Bars */}
+          {bins.map((bin, idx) => {
+            const isUserBin = bin.runtime === userRuntime
+            const barHeight = (bin.count / maxCount) * graphHeight
+            const x = paddingLeft + idx * (barWidth + gap)
+            const y = svgHeight - paddingBottom - barHeight
+
+            return (
+              <g key={idx}>
+                {/* Bar */}
+                <rect
+                  x={x}
+                  y={y}
+                  width={barWidth}
+                  height={Math.max(2, barHeight)}
+                  rx="2"
+                  fill={isUserBin ? 'url(#userBarGrad)' : 'url(#otherBarGrad)'}
+                  stroke={isUserBin ? 'rgba(167, 139, 250, 0.8)' : 'transparent'}
+                  strokeWidth="1"
+                  style={{
+                    transition: 'all 0.5s ease-out'
+                  }}
+                >
+                  <title>{`Thời gian: ${bin.runtime} ms, Số lượng: ${bin.count} bài nộp`}</title>
+                </rect>
+
+                {/* Marker Arrow above User Bar */}
+                {isUserBin && (
+                  <path
+                    d={`M ${x + barWidth / 2} ${y - 4} L ${x + barWidth / 2 - 3} ${y - 9} L ${x + barWidth / 2 + 3} ${y - 9} Z`}
+                    fill="#a78bfa"
+                  />
+                )}
+
+                {/* X-axis Label (Runtime in ms) */}
+                {(totalBars <= 8 || idx % Math.ceil(totalBars / 6) === 0 || isUserBin) && (
+                  <text
+                    x={x + barWidth / 2}
+                    y={svgHeight - 12}
+                    fill={isUserBin ? '#a78bfa' : 'var(--text-muted)'}
+                    fontSize="9px"
+                    fontWeight={isUserBin ? '700' : 'normal'}
+                    textAnchor="middle"
+                  >
+                    {`${bin.runtime} ms`}
+                  </text>
+                )}
+              </g>
+            )
+          })}
+        </svg>
+      </div>
+    )
   }
 
   if (loading) {
@@ -555,7 +651,7 @@ public class Solution {
         </div>
 
         {/* Evaluation Results */}
-        {result && (
+        {result && result.submission && (
           <div className="glass-panel results-container">
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <HelpCircle size={18} />
@@ -563,39 +659,79 @@ public class Solution {
             </h3>
             
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1rem' }}>
-              <span className={`status-badge status-${result.status}`}>
-                {result.status === 'ACCEPTED' ? 'ACCEPTED (AC)' :
-                 result.status === 'WRONG_ANSWER' ? 'WRONG ANSWER (WA)' :
-                 result.status === 'TIME_LIMIT_EXCEEDED' ? 'TIME LIMIT EXCEEDED (TLE)' :
-                 result.status === 'COMPILE_ERROR' ? 'COMPILE ERROR (CE)' :
-                 result.status === 'RUNTIME_ERROR' ? 'RUNTIME ERROR (RE)' : result.status}
+              <span className={`status-badge status-${result.submission.status}`}>
+                {result.submission.status === 'ACCEPTED' ? 'ACCEPTED (AC)' :
+                 result.submission.status === 'WRONG_ANSWER' ? 'WRONG ANSWER (WA)' :
+                 result.submission.status === 'TIME_LIMIT_EXCEEDED' ? 'TIME LIMIT EXCEEDED (TLE)' :
+                 result.submission.status === 'COMPILE_ERROR' ? 'COMPILE ERROR (CE)' :
+                 result.submission.status === 'RUNTIME_ERROR' ? 'RUNTIME ERROR (RE)' : result.submission.status}
               </span>
               <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-                Thời gian chạy: <strong style={{ color: 'var(--text-main)' }}>{result.runtimeMs} ms</strong>
+                Thời gian chạy: <strong style={{ color: 'var(--text-main)' }}>{result.submission.runtimeMs} ms</strong>
               </span>
             </div>
 
-            {result.errorMessage && (
+            {result.submission.errorMessage && (
               <div>
                 <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.35rem' }}>Chi tiết lỗi:</p>
-                <pre className={`console-output ${result.status === 'COMPILE_ERROR' ? 'console-error' : 'console-error'}`}>
-                  {result.errorMessage}
+                <pre className="console-output console-error">
+                  {result.submission.errorMessage}
                 </pre>
               </div>
             )}
 
-            {result.status === 'ACCEPTED' && (
-              <div 
-                style={{ 
-                  background: 'rgba(16, 185, 129, 0.05)', 
-                  border: '1px solid rgba(16, 185, 129, 0.2)', 
-                  padding: '1rem', 
-                  borderRadius: '6px',
-                  color: '#a7f3d0',
-                  fontSize: '0.9rem'
-                }}
-              >
-                🎉 Tất cả test case đều chạy chính xác! Thật tuyệt vời!
+            {result.submission.status === 'ACCEPTED' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '0.5rem' }}>
+                <div 
+                  style={{ 
+                    background: 'rgba(16, 185, 129, 0.05)', 
+                    border: '1px solid rgba(16, 185, 129, 0.2)', 
+                    padding: '1rem', 
+                    borderRadius: '6px',
+                    color: '#a7f3d0',
+                    fontSize: '0.9rem'
+                  }}
+                >
+                  🎉 Tất cả test case đều chạy chính xác! Thật tuyệt vời!
+                </div>
+
+                {/* Beats Display */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  background: 'rgba(167, 139, 250, 0.06)',
+                  border: '1px solid rgba(167, 139, 250, 0.15)',
+                }}>
+                  <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#a78bfa', lineHeight: 1 }}>
+                    {result.beatsPercentage}%
+                  </div>
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                      Vượt qua thời gian chạy (Beats)
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Của tất cả các bài nộp Java cho bài tập này trên hệ thống.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Distribution Histogram Chart */}
+                {result.runtimeDistribution && Object.keys(result.runtimeDistribution).length > 0 && (
+                  <div style={{ 
+                    padding: '1rem', 
+                    borderRadius: '8px', 
+                    background: 'rgba(255,255,255,0.01)', 
+                    border: '1px solid rgba(255,255,255,0.05)' 
+                  }}>
+                    <h4 style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', textAlign: 'left' }}>
+                      Phân phối thời gian chạy (Runtime Distribution)
+                    </h4>
+                    {renderDistributionChart(result.runtimeDistribution, result.submission.runtimeMs)}
+                  </div>
+                )}
               </div>
             )}
           </div>
