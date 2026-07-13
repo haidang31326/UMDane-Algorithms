@@ -116,7 +116,8 @@ public class ProblemController {
 
     @GetMapping("/yesterday-review")
     public ResponseEntity<ApiResponse<List<java.util.Map<String, Object>>>> getYesterdayReview(
-            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+            @AuthenticationPrincipal UserPrincipal userPrincipal,
+            @RequestParam(value = "test", defaultValue = "false") boolean testMode) {
         if (userPrincipal == null) {
             return ResponseEntity.status(401).body(new ApiResponse<>(401, "Bạn cần đăng nhập để xem ôn tập!", null));
         }
@@ -129,20 +130,21 @@ public class ProblemController {
                 userPrincipal.getId(), start, end
         );
 
-        // 2. If yesterday is empty, look for problems solved today (makes instant testing possible!)
+        // 2. Fallbacks based on testMode:
         if (solvedIds.isEmpty()) {
-            java.time.LocalDate today = java.time.LocalDate.now();
-            solvedIds = submissionRepository.findSolvedProblemIdsByUserIdAndDateBetween(
-                    userPrincipal.getId(), today.atStartOfDay(), today.atTime(java.time.LocalTime.MAX)
-            );
-        }
-
-        // 3. If today is also empty, look back at the last 7 days so they always have something to review
-        if (solvedIds.isEmpty()) {
-            java.time.LocalDate sevenDaysAgo = java.time.LocalDate.now().minusDays(7);
-            solvedIds = submissionRepository.findSolvedProblemIdsByUserIdAndDateBetween(
-                    userPrincipal.getId(), sevenDaysAgo.atStartOfDay(), java.time.LocalDateTime.now()
-            );
+            if (testMode) {
+                // If testMode is true, look for problems solved today to allow instant verification!
+                java.time.LocalDate today = java.time.LocalDate.now();
+                solvedIds = submissionRepository.findSolvedProblemIdsByUserIdAndDateBetween(
+                        userPrincipal.getId(), today.atStartOfDay(), today.atTime(java.time.LocalTime.MAX)
+                );
+            } else {
+                // In production, look back 7 days but EXCLUDE today (yesterday end is the limit)
+                java.time.LocalDate sevenDaysAgo = java.time.LocalDate.now().minusDays(7);
+                solvedIds = submissionRepository.findSolvedProblemIdsByUserIdAndDateBetween(
+                        userPrincipal.getId(), sevenDaysAgo.atStartOfDay(), end
+                );
+            }
         }
 
         if (solvedIds.isEmpty()) {

@@ -174,7 +174,9 @@ export default function Dashboard({ user, showToast }) {
       return
     }
     try {
-      const response = await fetch('/api/problems/yesterday-review', {
+      const isTest = new URLSearchParams(window.location.search).get('test') === 'true'
+      const url = isTest ? '/api/problems/yesterday-review?test=true' : '/api/problems/yesterday-review'
+      const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${user.token}` }
       })
       const data = await response.json()
