@@ -258,4 +258,84 @@ public class GeminiAiService {
         private String inputData;
         private boolean isHidden;
     }
+
+    public String generateReviewDigestForProblem(String title, String description) {
+        if (!isApiKeyConfigured()) {
+            throw new IllegalStateException("Gemini API key is not configured.");
+        }
+
+        String cleanedKey = cleanApiKey();
+        String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + cleanedKey;
+
+        String prompt = String.format(
+                "Hãy phân tích bài tập lập trình có tiêu đề '%s' và mô tả sau:\n" +
+                "\"\"\"\n%s\n\"\"\"\n\n" +
+                "Yêu cầu:\n" +
+                "1. Trích xuất một ý tưởng mấu chốt ngắn gọn để giải bài toán một cách tối ưu nhất (keyInsight).\n" +
+                "2. Tạo ra tối đa 3 bước tư duy lập luận rõ ràng, không chứa code khô khan (thinkingSteps).\n" +
+                "3. Biên soạn một câu hỏi ôn tập (quizQuestion) giúp kích hoạt trí nhớ người học về phương pháp giải bài toán này (ví dụ: đố vui về cấu trúc dữ liệu tối ưu, hoặc cách chuyển đổi thuật toán từ thô sơ sang tối ưu).\n" +
+                "4. Đưa ra đúng 3 phương án trả lời trắc nghiệm (quizOptions), trong đó chỉ có duy nhất 1 phương án chính xác.\n" +
+                "5. Xác định chỉ số phương án chính xác (quizCorrectAnswerIdx, là số nguyên từ 0 đến 2).\n" +
+                "6. Viết lời giải thích chi tiết ngắn gọn (quizExplanation) giải thích tại sao phương án đó là đúng.\n" +
+                "Bắt buộc trả về kết quả bằng tiếng Việt theo định dạng JSON có đầy đủ các thuộc tính quy định trong schema.",
+                title, description
+        );
+
+        try {
+            Map<String, Object> textPart = Map.of("text", prompt);
+            Map<String, Object> parts = Map.of("parts", List.of(textPart));
+
+            Map<String, Object> responseSchema = Map.of(
+                    "type", "OBJECT",
+                    "properties", Map.of(
+                            "keyInsight", Map.of("type", "STRING"),
+                            "thinkingSteps", Map.of(
+                                    "type", "ARRAY",
+                                    "items", Map.of("type", "STRING")
+                            ),
+                            "quizQuestion", Map.of("type", "STRING"),
+                            "quizOptions", Map.of(
+                                    "type", "ARRAY",
+                                    "items", Map.of("type", "STRING")
+                            ),
+                            "quizCorrectAnswerIdx", Map.of("type", "INTEGER"),
+                            "quizExplanation", Map.of("type", "STRING")
+                    ),
+                    "required", List.of("keyInsight", "thinkingSteps", "quizQuestion", "quizOptions", "quizCorrectAnswerIdx", "quizExplanation")
+            );
+
+            Map<String, Object> generationConfig = Map.of(
+                    "responseMimeType", "application/json",
+                    "responseSchema", responseSchema
+            );
+
+            Map<String, Object> payload = Map.of(
+                    "contents", List.of(parts),
+                    "generationConfig", generationConfig
+            );
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(payload, headers);
+            String responseStr = restTemplate.postForObject(url, request, String.class);
+
+            JsonNode rootNode = objectMapper.readTree(responseStr);
+            String aiJsonText = rootNode.path("candidates").get(0)
+                    .path("content").path("parts").get(0)
+                    .path("text").asText();
+            
+            return aiJsonText;
+
+        } catch (org.springframework.web.client.RestClientResponseException e) {
+            log.error("Lỗi HTTP phản hồi từ Gemini API trong generateReviewDigest (Status: {})", e.getStatusCode(), e);
+            if (e.getStatusCode().value() == 429) {
+                throw new RuntimeException("Hệ thống AI đang quá tải hoặc bạn đã vượt quá giới hạn yêu cầu tạo đề (Rate Limit). Vui lòng thử lại sau!");
+            }
+            throw new RuntimeException("Lỗi từ hệ thống AI (HTTP " + e.getStatusCode().value() + "). Vui lòng thử lại!");
+        } catch (Exception e) {
+            log.error("Lỗi khi kết nối đến Gemini API để sinh review", e);
+            throw new RuntimeException("Không thể sinh ôn tập tư duy bằng AI: " + e.getMessage(), e);
+        }
+    }
 }

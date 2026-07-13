@@ -19,4 +19,11 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
     java.util.List<Submission> findByUserId(Long userId, org.springframework.data.domain.Sort sort);
 
     java.util.List<Submission> findByProblemIdAndStatus(Long problemId, com.Dane.UMDane.entity.SubmissionStatus status);
+
+    @Query("SELECT DISTINCT s.problemId FROM Submission s WHERE s.userId = :userId AND s.status = com.Dane.UMDane.entity.SubmissionStatus.ACCEPTED AND s.createdAt >= :start AND s.createdAt <= :end")
+    java.util.List<Long> findSolvedProblemIdsByUserIdAndDateBetween(
+            @Param("userId") Long userId, 
+            @Param("start") java.time.LocalDateTime start, 
+            @Param("end") java.time.LocalDateTime end
+    );
 }

@@ -59,6 +59,9 @@ public class Problem {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "review_digest", columnDefinition = "TEXT")
+    private String reviewDigest;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();

@@ -15,11 +15,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/problems")
 @RequiredArgsConstructor
+@lombok.extern.slf4j.Slf4j
 public class ProblemController {
 
     private final ProblemService problemService;
     private final com.Dane.UMDane.repository.RoadmapNodeRepository roadmapNodeRepository;
     private final com.Dane.UMDane.repository.SubmissionRepository submissionRepository;
+    private final com.Dane.UMDane.repository.ProblemRepository problemRepository;
+    private final com.Dane.UMDane.service.GeminiAiService geminiAiService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<ProblemResponseDTO>>> getAllProblems() {
@@ -109,5 +112,87 @@ public class ProblemController {
 
         problemService.hideProblemForUser(userId, id);
         return ResponseEntity.ok(ApiResponse.success("Xóa bài tập thành công!", null));
+    }
+
+    @GetMapping("/yesterday-review")
+    public ResponseEntity<ApiResponse<List<java.util.Map<String, Object>>>> getYesterdayReview(
+            @AuthenticationPrincipal UserPrincipal userPrincipal) {
+        if (userPrincipal == null) {
+            return ResponseEntity.status(401).body(new ApiResponse<>(401, "Bạn cần đăng nhập để xem ôn tập!", null));
+        }
+
+        // 1. Calculate yesterday's boundaries (00:00:00 to 23:59:59)
+        java.time.LocalDate yesterday = java.time.LocalDate.now().minusDays(1);
+        java.time.LocalDateTime start = yesterday.atStartOfDay();
+        java.time.LocalDateTime end = yesterday.atTime(java.time.LocalTime.MAX);
+
+        // 2. Fetch solved problem IDs solved yesterday
+        List<Long> solvedIds = submissionRepository.findSolvedProblemIdsByUserIdAndDateBetween(
+                userPrincipal.getId(), start, end
+        );
+
+        if (solvedIds.isEmpty()) {
+            return ResponseEntity.ok(ApiResponse.success("Hôm qua bạn chưa giải bài nào.", List.of()));
+        }
+
+        // 3. Fetch problem entities
+        List<com.Dane.UMDane.entity.Problem> problems = problemRepository.findAllById(solvedIds);
+
+        // 4. Sort problems by difficulty (HARD > MEDIUM > EASY) and limit to max 3
+        java.util.Comparator<String> difficultyComparator = (d1, d2) -> {
+            int w1 = getDiffWeight(d1);
+            int w2 = getDiffWeight(d2);
+            return Integer.compare(w2, w1); // descending
+        };
+
+        problems = problems.stream()
+                .sorted((p1, p2) -> difficultyComparator.compare(p1.getDifficulty(), p2.getDifficulty()))
+                .limit(3)
+                .toList();
+
+        // 5. Build review cards list
+        List<java.util.Map<String, Object>> reviewCards = new java.util.ArrayList<>();
+        for (com.Dane.UMDane.entity.Problem p : problems) {
+            String digestJson = p.getReviewDigest();
+            if (digestJson == null || digestJson.trim().isEmpty()) {
+                try {
+                    // Lazy AI generation and caching
+                    digestJson = geminiAiService.generateReviewDigestForProblem(p.getTitle(), p.getDescription());
+                    p.setReviewDigest(digestJson);
+                    problemRepository.save(p);
+                } catch (Exception e) {
+                    log.error("Lỗi khi sinh ôn tập tự động bằng AI cho bài ID = {}", p.getId(), e);
+                    continue; // Skip this card if generation fails
+                }
+            }
+
+            try {
+                com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                java.util.Map<String, Object> digestMap = mapper.readValue(digestJson, new com.fasterxml.jackson.core.type.TypeReference<java.util.Map<String, Object>>() {});
+                
+                java.util.Map<String, Object> card = new java.util.HashMap<>();
+                card.put("problemId", p.getId());
+                card.put("title", p.getTitle());
+                card.put("topic", p.getTopic());
+                card.put("difficulty", p.getDifficulty());
+                card.putAll(digestMap);
+                
+                reviewCards.add(card);
+            } catch (Exception e) {
+                log.error("Lỗi khi giải mã review_digest của bài ID = {}", p.getId(), e);
+            }
+        }
+
+        return ResponseEntity.ok(ApiResponse.success("Lấy danh sách ôn tập tư duy thành công!", reviewCards));
+    }
+
+    private int getDiffWeight(String d) {
+        if (d == null) return 2;
+        switch (d.toUpperCase()) {
+            case "EASY": return 1;
+            case "MEDIUM": return 2;
+            case "HARD": return 3;
+            default: return 2;
+        }
     }
 }
