@@ -229,10 +229,10 @@ public class Solution {
     }
   }
 
-  const renderDistributionChart = (distribution, userRuntime) => {
+  const renderDistributionChart = (distribution, userVal, unit, isMemory = false) => {
     const bins = Object.entries(distribution)
-      .map(([rt, cnt]) => ({ runtime: parseInt(rt), count: cnt }))
-      .sort((a, b) => a.runtime - b.runtime)
+      .map(([val, cnt]) => ({ value: isMemory ? parseFloat(val) : parseInt(val), count: cnt }))
+      .sort((a, b) => a.value - b.value)
 
     if (bins.length === 0) return null
 
@@ -250,6 +250,8 @@ public class Solution {
     const totalBars = bins.length
     const barWidth = Math.min(50, Math.max(8, Math.floor(graphWidth / (totalBars || 1)) - 6))
     const gap = totalBars <= 1 ? 0 : (graphWidth - (barWidth * totalBars)) / (totalBars - 1)
+
+    const parsedUserVal = isMemory ? parseFloat(userVal) : parseInt(userVal)
 
     return (
       <div style={{ width: '100%', overflowX: 'auto', display: 'flex', justifyContent: 'center', margin: '0.5rem 0' }}>
@@ -272,7 +274,7 @@ public class Solution {
 
           {/* Bars */}
           {bins.map((bin, idx) => {
-            const isUserBin = bin.runtime === userRuntime
+            const isUserBin = isMemory ? Math.abs(bin.value - parsedUserVal) < 0.1 : bin.value === parsedUserVal
             const barHeight = (bin.count / maxCount) * graphHeight
             const x = paddingLeft + idx * (barWidth + gap)
             const y = svgHeight - paddingBottom - barHeight
@@ -293,7 +295,7 @@ public class Solution {
                     transition: 'all 0.5s ease-out'
                   }}
                 >
-                  <title>{`Thời gian: ${bin.runtime} ms, Số lượng: ${bin.count} bài nộp`}</title>
+                  <title>{`${isMemory ? 'Bộ nhớ' : 'Thời gian'}: ${bin.value} ${unit}, Số lượng: ${bin.count} bài nộp`}</title>
                 </rect>
 
                 {/* Marker Arrow above User Bar */}
@@ -304,7 +306,7 @@ public class Solution {
                   />
                 )}
 
-                {/* X-axis Label (Runtime in ms) */}
+                {/* X-axis Label */}
                 {(totalBars <= 8 || idx % Math.ceil(totalBars / 6) === 0 || isUserBin) && (
                   <text
                     x={x + barWidth / 2}
@@ -314,7 +316,7 @@ public class Solution {
                     fontWeight={isUserBin ? '700' : 'normal'}
                     textAnchor="middle"
                   >
-                    {`${bin.runtime} ms`}
+                    {`${bin.value} ${unit}`}
                   </text>
                 )}
               </g>
@@ -681,7 +683,7 @@ public class Solution {
             )}
 
             {result.submission.status === 'ACCEPTED' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', marginTop: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', marginTop: '0.5rem' }}>
                 <div 
                   style={{ 
                     background: 'rgba(16, 185, 129, 0.05)', 
@@ -695,43 +697,88 @@ public class Solution {
                   🎉 Tất cả test case đều chạy chính xác! Thật tuyệt vời!
                 </div>
 
-                {/* Beats Display */}
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  padding: '1rem',
-                  borderRadius: '8px',
-                  background: 'rgba(167, 139, 250, 0.06)',
-                  border: '1px solid rgba(167, 139, 250, 0.15)',
-                }}>
-                  <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#a78bfa', lineHeight: 1 }}>
-                    {result.beatsPercentage}%
-                  </div>
-                  <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-main)' }}>
-                      Vượt qua thời gian chạy (Beats)
+                {/* Dual Beats Cards & Charts (Runtime & Memory) */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.25rem' }}>
+                  
+                  {/* Runtime column */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.85rem',
+                      borderRadius: '8px',
+                      background: 'rgba(167, 139, 250, 0.06)',
+                      border: '1px solid rgba(167, 139, 250, 0.15)',
+                    }}>
+                      <div style={{ fontSize: '2rem', fontWeight: 900, color: '#a78bfa', lineHeight: 1 }}>
+                        {result.beatsPercentage}%
+                      </div>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                          Thời gian (Beats)
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          Của tất cả bài nộp Java
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Của tất cả các bài nộp Java cho bài tập này trên hệ thống.
-                    </div>
-                  </div>
-                </div>
 
-                {/* Distribution Histogram Chart */}
-                {result.runtimeDistribution && Object.keys(result.runtimeDistribution).length > 0 && (
-                  <div style={{ 
-                    padding: '1rem', 
-                    borderRadius: '8px', 
-                    background: 'rgba(255,255,255,0.01)', 
-                    border: '1px solid rgba(255,255,255,0.05)' 
-                  }}>
-                    <h4 style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.75rem', textAlign: 'left' }}>
-                      Phân phối thời gian chạy (Runtime Distribution)
-                    </h4>
-                    {renderDistributionChart(result.runtimeDistribution, result.submission.runtimeMs)}
+                    {result.runtimeDistribution && Object.keys(result.runtimeDistribution).length > 0 && (
+                      <div style={{ 
+                        padding: '1rem', 
+                        borderRadius: '8px', 
+                        background: 'rgba(255,255,255,0.01)', 
+                        border: '1px solid rgba(255,255,255,0.05)' 
+                      }}>
+                        <h4 style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem', textAlign: 'left' }}>
+                          Phân phối thời gian chạy (ms)
+                        </h4>
+                        {renderDistributionChart(result.runtimeDistribution, result.submission.runtimeMs, 'ms', false)}
+                      </div>
+                    )}
                   </div>
-                )}
+
+                  {/* Memory column */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.75rem',
+                      padding: '0.85rem',
+                      borderRadius: '8px',
+                      background: 'rgba(59, 130, 246, 0.06)',
+                      border: '1px solid rgba(59, 130, 246, 0.15)',
+                    }}>
+                      <div style={{ fontSize: '2rem', fontWeight: 900, color: '#60a5fa', lineHeight: 1 }}>
+                        {result.memoryBeatsPercentage}%
+                      </div>
+                      <div style={{ textAlign: 'left' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                          Bộ bộ nhớ (Beats)
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                          Của tất cả bài nộp Java
+                        </div>
+                      </div>
+                    </div>
+
+                    {result.memoryDistribution && Object.keys(result.memoryDistribution).length > 0 && (
+                      <div style={{ 
+                        padding: '1rem', 
+                        borderRadius: '8px', 
+                        background: 'rgba(255,255,255,0.01)', 
+                        border: '1px solid rgba(255,255,255,0.05)' 
+                      }}>
+                        <h4 style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '0.5rem', textAlign: 'left' }}>
+                          Phân phối bộ nhớ (MB)
+                        </h4>
+                        {renderDistributionChart(result.memoryDistribution, (result.submission.memoryKb / 1024.0), 'MB', true)}
+                      </div>
+                    )}
+                  </div>
+
+                </div>
               </div>
             )}
           </div>
