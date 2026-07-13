@@ -57,6 +57,17 @@ export default function Dashboard({ user, showToast }) {
   const [currentReviewIdx, setCurrentReviewIdx] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState(null)
   const [quizChecked, setQuizChecked] = useState(false)
+  const [reviewCompleted, setReviewCompleted] = useState(() => {
+    const todayStr = new Date().toISOString().split('T')[0]
+    return localStorage.getItem('review_completed_date') === todayStr
+  })
+
+  const handleFinishReview = () => {
+    const todayStr = new Date().toISOString().split('T')[0]
+    localStorage.setItem('review_completed_date', todayStr)
+    setReviewCompleted(true)
+    showToast('Chúc mừng bạn đã hoàn thành ôn tập tư duy thuật toán hôm nay!', 'success')
+  }
 
   const [expandedTopics, setExpandedTopics] = useState({})
 
@@ -331,7 +342,7 @@ export default function Dashboard({ user, showToast }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       
       {/* Yesterday's Active Recall Review Carousel */}
-      {user && yesterdayReviews.length > 0 && (
+      {user && yesterdayReviews.length > 0 && (new URLSearchParams(window.location.search).get('test') === 'true' || !reviewCompleted) && (
         <div className="glass-panel card" style={{ marginBottom: 0, border: '1px solid rgba(167, 139, 250, 0.25)', boxShadow: '0 0 20px rgba(167, 139, 250, 0.08)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
             <h2 className="card-title" style={{ color: '#a78bfa', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -521,27 +532,47 @@ export default function Dashboard({ user, showToast }) {
                   )}
                 </div>
 
-                {yesterdayReviews.length > 1 && (
+                {quizChecked && currentReviewIdx === yesterdayReviews.length - 1 ? (
                   <button
-                    onClick={() => {
-                      setSelectedAnswer(null)
-                      setQuizChecked(false)
-                      setCurrentReviewIdx((prev) => (prev + 1) % yesterdayReviews.length)
-                    }}
+                    onClick={handleFinishReview}
                     style={{
-                      padding: '0.5rem 1rem',
+                      padding: '0.5rem 1.25rem',
                       borderRadius: '6px',
-                      background: 'rgba(255,255,255,0.05)',
-                      border: '1px solid rgba(255,255,255,0.1)',
-                      color: 'var(--text-main)',
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                      color: '#ffffff',
+                      border: 'none',
                       fontSize: '0.85rem',
+                      fontWeight: 600,
                       cursor: 'pointer',
-                      transition: 'all 0.2s'
+                      transition: 'all 0.2s ease'
                     }}
                     className="hover-glass"
                   >
-                    {currentReviewIdx === yesterdayReviews.length - 1 ? 'Quay lại bài đầu' : 'Bài tiếp theo →'}
+                    ✓ Hoàn thành ôn tập hôm nay
                   </button>
+                ) : (
+                  yesterdayReviews.length > 1 && (
+                    <button
+                      onClick={() => {
+                        setSelectedAnswer(null)
+                        setQuizChecked(false)
+                        setCurrentReviewIdx((prev) => (prev + 1) % yesterdayReviews.length)
+                      }}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        borderRadius: '6px',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: 'var(--text-main)',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      className="hover-glass"
+                    >
+                      Bài tiếp theo →
+                    </button>
+                  )
                 )}
               </div>
 
