@@ -13,4 +13,6 @@ public class SubmissionResultDTO {
     private Submission submission;
     private double beatsPercentage;
     private Map<Integer, Integer> runtimeDistribution;
+    private double memoryBeatsPercentage;
+    private Map<Double, Integer> memoryDistribution;
 }

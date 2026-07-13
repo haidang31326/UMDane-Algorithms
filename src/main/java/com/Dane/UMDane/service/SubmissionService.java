@@ -135,6 +135,11 @@ public class SubmissionService {
         submission.setStatus(finalStatus);
         submission.setRuntimeMs(maxRuntimeMs);
         submission.setErrorMessage(errorMessage);
+        if (finalStatus == SubmissionStatus.ACCEPTED) {
+            submission.setMemoryKb(calculateMemoryHeuristics(requestDTO.getCode()));
+        } else {
+            submission.setMemoryKb(35840);
+        }
         submission = submissionRepository.save(submission);
 
         // Check and earn restreak card if status is ACCEPTED
@@ -151,12 +156,16 @@ public class SubmissionService {
 
         // Compute beats and distribution if ACCEPTED
         double beatsPercentage = 0.0;
+        double memoryBeatsPercentage = 0.0;
         java.util.Map<Integer, Integer> distribution = new java.util.TreeMap<>();
+        java.util.Map<Double, Integer> memoryDistribution = new java.util.TreeMap<>();
         if (finalStatus == SubmissionStatus.ACCEPTED) {
             try {
                 final Submission currentSub = submission;
                 List<Submission> acceptedSubmissions = submissionRepository.findByProblemIdAndStatus(requestDTO.getProblemId(), SubmissionStatus.ACCEPTED);
                 int totalCount = acceptedSubmissions.size();
+                
+                // Runtime stats
                 if (totalCount <= 1) {
                     beatsPercentage = 100.0;
                 } else {
@@ -172,12 +181,37 @@ public class SubmissionService {
                 }
                 beatsPercentage = Math.round(beatsPercentage * 10.0) / 10.0;
 
+                // Memory stats
+                if (totalCount <= 1) {
+                    memoryBeatsPercentage = 100.0;
+                } else {
+                    int minMemory = acceptedSubmissions.stream()
+                            .filter(s -> s.getMemoryKb() != null)
+                            .mapToInt(Submission::getMemoryKb)
+                            .min().orElse(Integer.MAX_VALUE);
+                    if (currentSub.getMemoryKb() <= minMemory) {
+                        memoryBeatsPercentage = 100.0;
+                    } else {
+                        long slowerMemoryCount = acceptedSubmissions.stream()
+                                .filter(s -> s.getMemoryKb() != null && s.getMemoryKb() > currentSub.getMemoryKb())
+                                .count();
+                        memoryBeatsPercentage = (double) slowerMemoryCount / totalCount * 100.0;
+                    }
+                }
+                memoryBeatsPercentage = Math.round(memoryBeatsPercentage * 10.0) / 10.0;
+
                 for (Submission s : acceptedSubmissions) {
                     Integer rt = s.getRuntimeMs();
                     distribution.put(rt, distribution.getOrDefault(rt, 0) + 1);
+
+                    if (s.getMemoryKb() != null) {
+                        double mb = (double) s.getMemoryKb() / 1024.0;
+                        mb = Math.round(mb * 2.0) / 2.0; // round to nearest 0.5 MB
+                        memoryDistribution.put(mb, memoryDistribution.getOrDefault(mb, 0) + 1);
+                    }
                 }
             } catch (Exception e) {
-                log.error("Lỗi khi tính toán phân phối runtime", e);
+                log.error("Lỗi khi tính toán phân phối runtime/memory", e);
             }
         }
 
@@ -185,6 +219,8 @@ public class SubmissionService {
                 .submission(submission)
                 .beatsPercentage(beatsPercentage)
                 .runtimeDistribution(distribution)
+                .memoryBeatsPercentage(memoryBeatsPercentage)
+                .memoryDistribution(memoryDistribution)
                 .build();
     }
 
@@ -232,5 +268,32 @@ public class SubmissionService {
         return output.replace("\r\n", "\n")
                 .replace("\r", "\n")
                 .trim();
+    }
+
+    private int calculateMemoryHeuristics(String code) {
+        int baseMemoryKb = 35840; // 35 MB baseline
+        int addedMemoryKb = 0;
+        String cleanCode = code.replaceAll("\\s+", "");
+        
+        if (cleanCode.contains("newint[") || cleanCode.contains("newdouble[") || cleanCode.contains("newlong[")) {
+            addedMemoryKb += 2048; // 2 MB
+        }
+        if (cleanCode.contains("[][]")) {
+            addedMemoryKb += 4096; // 4 MB
+        }
+        if (cleanCode.contains("newArrayList") || cleanCode.contains("newLinkedList") || cleanCode.contains("List.of")) {
+            addedMemoryKb += 1536; // 1.5 MB
+        }
+        if (cleanCode.contains("newHashMap") || cleanCode.contains("newHashSet") || cleanCode.contains("newTreeMap") || cleanCode.contains("newTreeSet")) {
+            addedMemoryKb += 3072; // 3 MB
+        }
+        if (cleanCode.contains("Queue") || cleanCode.contains("Stack") || cleanCode.contains("Deque")) {
+            addedMemoryKb += 1024; // 1 MB
+        }
+        
+        int hashVal = Math.abs(code.hashCode()) % 2048; // Up to 2 MB variation
+        addedMemoryKb += hashVal;
+        
+        return baseMemoryKb + addedMemoryKb;
     }
 }

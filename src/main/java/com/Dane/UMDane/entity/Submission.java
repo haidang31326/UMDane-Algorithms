@@ -35,6 +35,10 @@ public class Submission {
     @Column(name = "runtime_ms")
     private Integer runtimeMs;
 
+    @Column(name = "memory_kb")
+    @Builder.Default
+    private Integer memoryKb = 35840;
+
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
