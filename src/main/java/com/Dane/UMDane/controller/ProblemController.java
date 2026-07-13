@@ -121,15 +121,29 @@ public class ProblemController {
             return ResponseEntity.status(401).body(new ApiResponse<>(401, "Bạn cần đăng nhập để xem ôn tập!", null));
         }
 
-        // 1. Calculate yesterday's boundaries (00:00:00 to 23:59:59)
+        // 1. First, look for problems solved yesterday (traditional spaced repetition)
         java.time.LocalDate yesterday = java.time.LocalDate.now().minusDays(1);
         java.time.LocalDateTime start = yesterday.atStartOfDay();
         java.time.LocalDateTime end = yesterday.atTime(java.time.LocalTime.MAX);
-
-        // 2. Fetch solved problem IDs solved yesterday
         List<Long> solvedIds = submissionRepository.findSolvedProblemIdsByUserIdAndDateBetween(
                 userPrincipal.getId(), start, end
         );
+
+        // 2. If yesterday is empty, look for problems solved today (makes instant testing possible!)
+        if (solvedIds.isEmpty()) {
+            java.time.LocalDate today = java.time.LocalDate.now();
+            solvedIds = submissionRepository.findSolvedProblemIdsByUserIdAndDateBetween(
+                    userPrincipal.getId(), today.atStartOfDay(), today.atTime(java.time.LocalTime.MAX)
+            );
+        }
+
+        // 3. If today is also empty, look back at the last 7 days so they always have something to review
+        if (solvedIds.isEmpty()) {
+            java.time.LocalDate sevenDaysAgo = java.time.LocalDate.now().minusDays(7);
+            solvedIds = submissionRepository.findSolvedProblemIdsByUserIdAndDateBetween(
+                    userPrincipal.getId(), sevenDaysAgo.atStartOfDay(), java.time.LocalDateTime.now()
+            );
+        }
 
         if (solvedIds.isEmpty()) {
             return ResponseEntity.ok(ApiResponse.success("Hôm qua bạn chưa giải bài nào.", List.of()));
