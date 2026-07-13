@@ -25,8 +25,8 @@ public class SubmissionController {
     private final SubmissionRepository submissionRepository;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<Submission>> submitCode(@Valid @RequestBody CodeSubmitDTO request) {
-        Submission result = submissionService.submitCode(request);
+    public ResponseEntity<ApiResponse<com.Dane.UMDane.dto.SubmissionResultDTO>> submitCode(@Valid @RequestBody CodeSubmitDTO request) {
+        com.Dane.UMDane.dto.SubmissionResultDTO result = submissionService.submitCode(request);
         return ResponseEntity.ok(ApiResponse.success("Chấm bài hoàn tất!", result));
     }
 

@@ -30,7 +30,7 @@ public class SubmissionService {
     private final SimpMessagingTemplate messagingTemplate;
     private final UserRestreakService userRestreakService;
 
-    public Submission submitCode(CodeSubmitDTO requestDTO) {
+    public com.Dane.UMDane.dto.SubmissionResultDTO submitCode(CodeSubmitDTO requestDTO) {
         Problem problem = problemRepository.findById(requestDTO.getProblemId())
                 .orElseThrow(() -> new RuntimeException("Không tìm thấy đề bài!"));
 
@@ -67,7 +67,11 @@ public class SubmissionService {
             submission.setErrorMessage("Hệ thống chưa cấu hình Test Case cho bài toán này!");
             submission = submissionRepository.save(submission);
             broadcastUpdate(submission);
-            return submission;
+            return com.Dane.UMDane.dto.SubmissionResultDTO.builder()
+                    .submission(submission)
+                    .beatsPercentage(0.0)
+                    .runtimeDistribution(new java.util.TreeMap<>())
+                    .build();
         }
 
         // 3. Run execution in batch
@@ -145,7 +149,43 @@ public class SubmissionService {
         // Broadcast final status
         broadcastUpdate(submission);
 
-        return submission;
+        // Compute beats and distribution if ACCEPTED
+        double beatsPercentage = 0.0;
+        java.util.Map<Integer, Integer> distribution = new java.util.TreeMap<>();
+        if (finalStatus == SubmissionStatus.ACCEPTED) {
+            try {
+                final Submission currentSub = submission;
+                List<Submission> acceptedSubmissions = submissionRepository.findByProblemIdAndStatus(requestDTO.getProblemId(), SubmissionStatus.ACCEPTED);
+                int totalCount = acceptedSubmissions.size();
+                if (totalCount <= 1) {
+                    beatsPercentage = 100.0;
+                } else {
+                    int minRuntime = acceptedSubmissions.stream().mapToInt(Submission::getRuntimeMs).min().orElse(Integer.MAX_VALUE);
+                    if (currentSub.getRuntimeMs() <= minRuntime) {
+                        beatsPercentage = 100.0;
+                    } else {
+                        long slowerCount = acceptedSubmissions.stream()
+                                .filter(s -> s.getRuntimeMs() > currentSub.getRuntimeMs())
+                                .count();
+                        beatsPercentage = (double) slowerCount / totalCount * 100.0;
+                    }
+                }
+                beatsPercentage = Math.round(beatsPercentage * 10.0) / 10.0;
+
+                for (Submission s : acceptedSubmissions) {
+                    Integer rt = s.getRuntimeMs();
+                    distribution.put(rt, distribution.getOrDefault(rt, 0) + 1);
+                }
+            } catch (Exception e) {
+                log.error("Lỗi khi tính toán phân phối runtime", e);
+            }
+        }
+
+        return com.Dane.UMDane.dto.SubmissionResultDTO.builder()
+                .submission(submission)
+                .beatsPercentage(beatsPercentage)
+                .runtimeDistribution(distribution)
+                .build();
     }
 
     public List<SandboxResult> runCode(CodeRunDTO requestDTO) {
