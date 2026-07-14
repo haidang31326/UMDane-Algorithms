@@ -57,6 +57,7 @@ export default function Dashboard({ user, showToast }) {
   const [currentReviewIdx, setCurrentReviewIdx] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState(null)
   const [quizChecked, setQuizChecked] = useState(false)
+  const [reviewModalOpen, setReviewModalOpen] = useState(false)
   const [reviewCompleted, setReviewCompleted] = useState(() => {
     const todayStr = new Date().toISOString().split('T')[0]
     return localStorage.getItem('review_completed_date') === todayStr
@@ -420,68 +421,110 @@ export default function Dashboard({ user, showToast }) {
       
       {/* Yesterday's Active Recall Review Carousel */}
       {user && yesterdayReviews.length > 0 && (new URLSearchParams(window.location.search).get('test') === 'true' || !reviewCompleted) && (
-        <div className="glass-panel card" style={{ marginBottom: 0, border: '1px solid rgba(167, 139, 250, 0.25)', boxShadow: '0 0 20px rgba(167, 139, 250, 0.08)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
-            <h2 className="card-title" style={{ color: '#a78bfa', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div className="glass-panel card" style={{
+          border: '1px solid rgba(167, 139, 250, 0.25)',
+          background: 'rgba(17, 24, 39, 0.4)',
+          padding: '1.25rem 1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          boxShadow: '0 0 20px rgba(167, 139, 250, 0.08)',
+          marginBottom: 0
+        }}>
+          <div style={{ textAlign: 'left' }}>
+            <h2 style={{ color: '#a78bfa', fontSize: '1.15rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Sparkles size={20} />
-              Nhật Ký Ôn Tập Tư Duy Thuật Toán (Hôm qua)
+              Thử thách Ôn tập Tư duy Thuật toán hằng ngày
             </h2>
-            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-              {yesterdayReviews.map((_, idx) => (
-                <div 
-                  key={idx} 
-                  style={{ 
-                    width: '6px', 
-                    height: '6px', 
-                    borderRadius: '50%', 
-                    background: idx === currentReviewIdx ? '#a78bfa' : 'rgba(255,255,255,0.2)',
-                    transition: 'all 0.3s ease'
-                  }} 
-                />
-              ))}
-            </div>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.25rem 0 0 0' }}>
+              Hôm nay bạn có <strong>{yesterdayReviews.length} bài cần ôn tập</strong>. Hãy dành 1 phút để thử tài điền khuyết code!
+            </p>
           </div>
-          
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem', textAlign: 'left' }}>
-            Học tập qua việc điền khuyết code của các bài đã giải trong 7 ngày qua. Hãy đọc hiểu logic và chọn khối code đúng:
-          </p>
+          <button
+            onClick={() => {
+              setReviewModalOpen(true)
+              setCurrentReviewIdx(0)
+              setSelectedAnswer(null)
+              setQuizChecked(false)
+            }}
+            style={{
+              padding: '0.6rem 1.5rem',
+              borderRadius: '6px',
+              background: 'linear-gradient(135deg, #a78bfa, #7c3aed)',
+              color: '#ffffff',
+              border: 'none',
+              fontWeight: 700,
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              boxShadow: '0 0 15px rgba(167, 139, 250, 0.35)',
+              transition: 'all 0.2s'
+            }}
+            className="hover-glass"
+          >
+            Bắt đầu ôn tập →
+          </button>
+        </div>
+      )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '8px' }}>
+      {/* Spaced Repetition Active Recall Modal */}
+      {reviewModalOpen && currentCard && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          background: 'rgba(5, 7, 12, 0.85)',
+          backdropFilter: 'blur(10px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '1.5rem'
+        }}>
+          <div className="glass-panel" style={{
+            width: '100%',
+            maxWidth: '850px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '2rem',
+            borderRadius: '12px',
+            border: '1px solid rgba(167, 139, 250, 0.3)',
+            background: 'rgba(15, 23, 42, 0.95)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.5rem',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.5)'
+          }}>
             
-            {/* Header info */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '1rem' }}>
               <div style={{ textAlign: 'left' }}>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
-                  <Link to={`/problems/${currentCard.problemId}`} style={{ color: 'var(--text-main)', textDecoration: 'none' }} className="hover-highlight">
-                    Thử thách Điền khuyết Code: {currentCard.title}
-                  </Link>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#a78bfa', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Sparkles size={20} />
+                  Thử thách Điền khuyết Code: {currentCard.title}
                 </h3>
-                <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem' }}>
-                  <span style={{
-                    fontSize: '0.7rem',
-                    padding: '0.15rem 0.4rem',
-                    borderRadius: '4px',
-                    background: 'rgba(59, 130, 246, 0.15)',
-                    color: '#60a5fa',
-                    border: '1px solid rgba(59, 130, 246, 0.3)'
-                  }}>
-                    {getNormalizedTopicName(currentCard.topic)}
-                  </span>
-                  <span style={{
-                    fontSize: '0.7rem',
-                    padding: '0.15rem 0.4rem',
-                    borderRadius: '4px',
-                    background: currentCard.difficulty === 'EASY' ? 'rgba(16, 185, 129, 0.15)' : 
-                                currentCard.difficulty === 'MEDIUM' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                    color: currentCard.difficulty === 'EASY' ? '#34d399' : 
-                           currentCard.difficulty === 'MEDIUM' ? '#fbbf24' : '#f87171',
-                    border: currentCard.difficulty === 'EASY' ? '1px solid rgba(16, 185, 129, 0.3)' : 
-                            currentCard.difficulty === 'MEDIUM' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
-                  }}>
-                    {currentCard.difficulty}
-                  </span>
-                </div>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  Bài ôn tập {currentReviewIdx + 1}/{yesterdayReviews.length}
+                </span>
               </div>
+              <button
+                onClick={() => setReviewModalOpen(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  fontSize: '1.75rem',
+                  padding: '0.25rem',
+                  lineHeight: 1
+                }}
+                className="hover-highlight"
+              >
+                &times;
+              </button>
             </div>
 
             {/* Core Insight Card */}
@@ -514,12 +557,7 @@ export default function Dashboard({ user, showToast }) {
             </div>
 
             {/* Snippet Selection Quiz */}
-            <div style={{ 
-              marginTop: '0.5rem',
-              paddingTop: '1rem',
-              borderTop: '1px solid rgba(255,255,255,0.06)',
-              textAlign: 'left'
-            }}>
+            <div style={{ textAlign: 'left' }}>
               <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.75rem' }}>
                 ❓ Chọn đoạn code chính xác điền vào phần trống (dòng có ghi chú `// TODO`):
               </div>
@@ -582,7 +620,7 @@ export default function Dashboard({ user, showToast }) {
               </div>
 
               {/* Check answer / Next action */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', gap: '1rem', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: '200px' }}>
                   {!quizChecked ? (
                     <button
@@ -612,7 +650,10 @@ export default function Dashboard({ user, showToast }) {
 
                 {quizChecked && currentReviewIdx === yesterdayReviews.length - 1 ? (
                   <button
-                    onClick={handleFinishReview}
+                    onClick={() => {
+                      handleFinishReview()
+                      setReviewModalOpen(false)
+                    }}
                     style={{
                       padding: '0.5rem 1.25rem',
                       borderRadius: '6px',
