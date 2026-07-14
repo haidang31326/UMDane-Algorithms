@@ -170,10 +170,10 @@ public class ProblemController {
         List<java.util.Map<String, Object>> reviewCards = new java.util.ArrayList<>();
         for (com.Dane.UMDane.entity.Problem p : problems) {
             String digestJson = p.getReviewDigest();
-            if (digestJson == null || digestJson.trim().isEmpty()) {
+            if (digestJson == null || digestJson.trim().isEmpty() || !digestJson.contains("maskedCode")) {
                 try {
                     // Lazy AI generation and caching
-                    digestJson = geminiAiService.generateReviewDigestForProblem(p.getTitle(), p.getDescription());
+                    digestJson = geminiAiService.generateReviewDigestForProblem(p.getTitle(), p.getDescription(), p.getReferenceSolution());
                     p.setReviewDigest(digestJson);
                     problemRepository.save(p);
                 } catch (Exception e) {
