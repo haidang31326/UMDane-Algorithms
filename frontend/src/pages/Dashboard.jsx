@@ -78,6 +78,83 @@ export default function Dashboard({ user, showToast }) {
     }))
   }
 
+  const currentCard = yesterdayReviews[currentReviewIdx]
+
+  const shuffledOptions = useMemo(() => {
+    if (!currentCard) return []
+    const opts = [
+      { text: currentCard.correctSnippet, isCorrect: true },
+      { text: currentCard.wrongSnippet1, isCorrect: false },
+      { text: currentCard.wrongSnippet2, isCorrect: false }
+    ]
+    return opts.sort(() => Math.random() - 0.5)
+  }, [yesterdayReviews, currentReviewIdx])
+
+  const renderCodeBlock = (code, selectedOptText, isChecked, isCorrect) => {
+    let finalCode = code || ''
+    if (selectedOptText) {
+      finalCode = code.replace('// TODO: Điền code còn thiếu tại đây', selectedOptText)
+    }
+    
+    const lines = finalCode.split('\n')
+    
+    return (
+      <div style={{
+        background: '#090d16',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: '8px',
+        padding: '1rem 0.5rem',
+        fontFamily: '"Fira Code", "Courier New", Courier, monospace',
+        fontSize: '0.8rem',
+        color: '#cbd5e1',
+        overflowX: 'auto',
+        textAlign: 'left',
+        lineHeight: 1.6,
+      }}>
+        {lines.map((line, index) => {
+          const isReplacedLine = selectedOptText && line.includes(selectedOptText)
+          let lineBg = 'transparent'
+          let lineColor = '#cbd5e1'
+          let lineWeight = 'normal'
+
+          if (isReplacedLine) {
+            lineBg = isChecked 
+              ? (isCorrect ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)') 
+              : 'rgba(167, 139, 250, 0.12)'
+            lineColor = isChecked 
+              ? (isCorrect ? '#34d399' : '#f87171') 
+              : '#c084fc'
+            lineWeight = 'bold'
+          } else if (line.includes('// TODO:')) {
+            lineBg = 'rgba(251, 191, 36, 0.05)'
+            lineColor = '#fbbf24'
+            lineWeight = 'bold'
+          }
+
+          return (
+            <div key={index} style={{ display: 'flex', background: lineBg, padding: '0.05rem 0.5rem', borderRadius: '4px' }}>
+              <span style={{
+                width: '2rem',
+                color: 'rgba(255,255,255,0.15)',
+                userSelect: 'none',
+                textAlign: 'right',
+                paddingRight: '0.75rem',
+                borderRight: '1px solid rgba(255,255,255,0.05)',
+                marginRight: '0.75rem',
+                fontSize: '0.75rem'
+              }}>
+                {index + 1}
+              </span>
+              <span style={{ whiteSpace: 'pre', color: lineColor, fontWeight: lineWeight }}>
+                {line}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
   const solvedProblemIds = useMemo(() => {
     const solved = new Set()
     submissions.forEach(sub => {
@@ -366,17 +443,17 @@ export default function Dashboard({ user, showToast }) {
           </div>
           
           <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1.25rem', textAlign: 'left' }}>
-            Hôm qua bạn đã xuất sắc giải được <strong>{yesterdayReviews.length} bài</strong>. Hãy dành 30 giây ôn lại bản chất thuật toán để khắc sâu kiến thức:
+            Học tập qua việc điền khuyết code của các bài đã giải trong 7 ngày qua. Hãy đọc hiểu logic và chọn khối code đúng:
           </p>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', padding: '1.25rem', borderRadius: '8px' }}>
             
             {/* Header info */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
               <div style={{ textAlign: 'left' }}>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-main)', margin: 0 }}>
-                  <Link to={`/problems/${yesterdayReviews[currentReviewIdx].problemId}`} style={{ color: 'var(--text-main)', textDecoration: 'none' }} className="hover-highlight">
-                    {yesterdayReviews[currentReviewIdx].title}
+                  <Link to={`/problems/${currentCard.problemId}`} style={{ color: 'var(--text-main)', textDecoration: 'none' }} className="hover-highlight">
+                    Thử thách Điền khuyết Code: {currentCard.title}
                   </Link>
                 </h3>
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.35rem' }}>
@@ -388,20 +465,20 @@ export default function Dashboard({ user, showToast }) {
                     color: '#60a5fa',
                     border: '1px solid rgba(59, 130, 246, 0.3)'
                   }}>
-                    {getNormalizedTopicName(yesterdayReviews[currentReviewIdx].topic)}
+                    {getNormalizedTopicName(currentCard.topic)}
                   </span>
                   <span style={{
                     fontSize: '0.7rem',
                     padding: '0.15rem 0.4rem',
                     borderRadius: '4px',
-                    background: yesterdayReviews[currentReviewIdx].difficulty === 'EASY' ? 'rgba(16, 185, 129, 0.15)' : 
-                                yesterdayReviews[currentReviewIdx].difficulty === 'MEDIUM' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                    color: yesterdayReviews[currentReviewIdx].difficulty === 'EASY' ? '#34d399' : 
-                           yesterdayReviews[currentReviewIdx].difficulty === 'MEDIUM' ? '#fbbf24' : '#f87171',
-                    border: yesterdayReviews[currentReviewIdx].difficulty === 'EASY' ? '1px solid rgba(16, 185, 129, 0.3)' : 
-                            yesterdayReviews[currentReviewIdx].difficulty === 'MEDIUM' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
+                    background: currentCard.difficulty === 'EASY' ? 'rgba(16, 185, 129, 0.15)' : 
+                                currentCard.difficulty === 'MEDIUM' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                    color: currentCard.difficulty === 'EASY' ? '#34d399' : 
+                           currentCard.difficulty === 'MEDIUM' ? '#fbbf24' : '#f87171',
+                    border: currentCard.difficulty === 'EASY' ? '1px solid rgba(16, 185, 129, 0.3)' : 
+                            currentCard.difficulty === 'MEDIUM' ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
                   }}>
-                    {yesterdayReviews[currentReviewIdx].difficulty}
+                    {currentCard.difficulty}
                   </span>
                 </div>
               </div>
@@ -419,56 +496,56 @@ export default function Dashboard({ user, showToast }) {
                 💡 Ý TƯỞNG CỐT LÕI (CORE INSIGHT)
               </div>
               <div style={{ fontSize: '0.9rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
-                {yesterdayReviews[currentReviewIdx].keyInsight}
+                {currentCard.keyInsight}
               </div>
             </div>
 
-            {/* Thinking steps */}
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                👣 CÁC BƯỚC SUY LUẬN
+            {/* Code Block Window */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'left' }}>
+                💻 MÃ NGUỒN GIẢI MẪU (REFERENCE SOLUTION)
               </div>
-              <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.85rem', color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                {yesterdayReviews[currentReviewIdx].thinkingSteps?.map((step, sIdx) => (
-                  <li key={sIdx}>{step}</li>
-                ))}
-              </ul>
+              {renderCodeBlock(
+                currentCard.maskedCode,
+                selectedAnswer !== null ? shuffledOptions[selectedAnswer].text : null,
+                quizChecked,
+                selectedAnswer !== null ? shuffledOptions[selectedAnswer].isCorrect : false
+              )}
             </div>
 
-            {/* Active Recall Quiz */}
+            {/* Snippet Selection Quiz */}
             <div style={{ 
               marginTop: '0.5rem',
               paddingTop: '1rem',
               borderTop: '1px solid rgba(255,255,255,0.06)',
               textAlign: 'left'
             }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.65rem' }}>
-                ❓ Câu hỏi gợi nhớ: {yesterdayReviews[currentReviewIdx].quizQuestion}
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-main)', marginBottom: '0.75rem' }}>
+                ❓ Chọn đoạn code chính xác điền vào phần trống (dòng có ghi chú `// TODO`):
               </div>
               
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                {yesterdayReviews[currentReviewIdx].quizOptions?.map((option, optIdx) => {
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                {shuffledOptions.map((opt, optIdx) => {
                   let btnBg = 'rgba(255,255,255,0.03)'
                   let btnBorder = '1px solid rgba(255,255,255,0.08)'
                   let btnColor = 'var(--text-main)'
 
                   if (quizChecked) {
-                    const isCorrectOpt = optIdx === yesterdayReviews[currentReviewIdx].quizCorrectAnswerIdx
-                    const isSelectedOpt = optIdx === selectedAnswer
+                    const isSelected = optIdx === selectedAnswer
                     
-                    if (isCorrectOpt) {
+                    if (opt.isCorrect) {
                       btnBg = 'rgba(16, 185, 129, 0.15)'
                       btnBorder = '1px solid rgba(16, 185, 129, 0.4)'
                       btnColor = '#34d399'
-                    } else if (isSelectedOpt) {
+                    } else if (isSelected) {
                       btnBg = 'rgba(239, 68, 68, 0.15)'
                       btnBorder = '1px solid rgba(239, 68, 68, 0.4)'
                       btnColor = '#f87171'
                     }
                   } else {
                     if (selectedAnswer === optIdx) {
-                      btnBg = 'rgba(167, 139, 250, 0.1)'
-                      btnBorder = '1px solid rgba(167, 139, 250, 0.4)'
+                      btnBg = 'rgba(167, 139, 250, 0.12)'
+                      btnBorder = '1px solid rgba(167, 139, 250, 0.5)'
                     }
                   }
 
@@ -478,13 +555,14 @@ export default function Dashboard({ user, showToast }) {
                       disabled={quizChecked}
                       onClick={() => setSelectedAnswer(optIdx)}
                       style={{
-                        padding: '0.65rem 1rem',
+                        padding: '0.75rem 1rem',
                         borderRadius: '6px',
                         background: btnBg,
                         border: btnBorder,
                         color: btnColor,
                         textAlign: 'left',
-                        fontSize: '0.85rem',
+                        fontFamily: '"Fira Code", "Courier New", Courier, monospace',
+                        fontSize: '0.8rem',
                         cursor: quizChecked ? 'default' : 'pointer',
                         transition: 'all 0.2s ease',
                         display: 'flex',
@@ -494,9 +572,9 @@ export default function Dashboard({ user, showToast }) {
                       }}
                       className={!quizChecked ? "hover-glass" : ""}
                     >
-                      <span>{option}</span>
-                      {quizChecked && optIdx === yesterdayReviews[currentReviewIdx].quizCorrectAnswerIdx && (
-                        <span style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>✓ Đáp án đúng</span>
+                      <span>{opt.text}</span>
+                      {quizChecked && opt.isCorrect && (
+                        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#10b981' }}>✓ Khớp logic</span>
                       )}
                     </button>
                   )
@@ -504,7 +582,7 @@ export default function Dashboard({ user, showToast }) {
               </div>
 
               {/* Check answer / Next action */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', gap: '1rem', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', gap: '1rem', flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: '200px' }}>
                   {!quizChecked ? (
                     <button
@@ -527,7 +605,7 @@ export default function Dashboard({ user, showToast }) {
                     </button>
                   ) : (
                     <div style={{ fontSize: '0.85rem', color: '#a7f3d0', background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.15)', padding: '0.5rem 1rem', borderRadius: '6px' }}>
-                      💡 <strong>Giải thích:</strong> {yesterdayReviews[currentReviewIdx].quizExplanation}
+                      💡 <strong>Giải thích:</strong> {currentCard.explanation}
                     </div>
                   )}
                 </div>
