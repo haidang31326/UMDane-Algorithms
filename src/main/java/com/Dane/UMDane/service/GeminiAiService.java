@@ -276,6 +276,7 @@ public class GeminiAiService {
                 "1. Trích xuất một ý tưởng mấu chốt ngắn gọn để giải bài toán tối ưu nhất (keyInsight).\n" +
                 "2. Cắt bỏ 1 đến 3 dòng code logic mấu chốt nhất trong mã nguồn giải mẫu (ví dụ: điều kiện so sánh quyết định, công thức toán học/DP quy đổi, cập nhật trạng thái Map/Set, hoán vị phần tử...) và thay thế chính xác dòng code đó bằng chuỗi: `// TODO: Điền code còn thiếu tại đây`.\n" +
                 "   Mã nguồn sau khi được thay thế này sẽ gọi là 'maskedCode'.\n" +
+                "   LƯU Ý CỰC KỲ QUAN TRỌNG: Mã nguồn trong 'maskedCode' bắt buộc phải giữ nguyên toàn bộ các ký tự xuống dòng '\\n' và khoảng trắng thụt lề đầu dòng y hệt như code Java chuẩn gốc. Tuyệt đối không được nén code thành một hàng ngang duy nhất.\n" +
                 "3. Trích xuất đoạn code chính xác bị cắt ra làm 'correctSnippet'.\n" +
                 "4. Tạo thêm 2 phương án code gây nhiễu ('wrongSnippet1' và 'wrongSnippet2') có cấu trúc tương tự phương án đúng nhưng chứa lỗi logic nhỏ (ví dụ: sai toán tử so sánh, sai chỉ số, nhầm lẫn biến hoặc điều kiện biên lệch).\n" +
                 "5. Viết lời giải thích chi tiết ngắn gọn (explanation) tại sao đoạn code đúng mới giúp thuật toán hoạt động chính xác.\n" +

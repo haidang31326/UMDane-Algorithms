@@ -93,21 +93,31 @@ export default function Dashboard({ user, showToast }) {
 
   const renderCodeBlock = (code, selectedOptText, isChecked, isCorrect) => {
     let finalCode = code || ''
+    
+    // Auto-formatting fallback: if code is compressed to a single line, split it by syntax tokens
+    if (finalCode && !finalCode.includes('\n')) {
+      finalCode = finalCode
+        .replace(/; /g, ';\n')
+        .replace(/\{ /g, '{\n')
+        .replace(/\s*\}\s*/g, '\n}\n')
+        .replace(/\/\/\s*TODO:[^\n]+/g, (match) => '\n' + match + '\n')
+    }
+
     if (selectedOptText) {
-      finalCode = code.replace('// TODO: Điền code còn thiếu tại đây', selectedOptText)
+      finalCode = finalCode.replace('// TODO: Điền code còn thiếu tại đây', selectedOptText)
     }
     
-    const lines = finalCode.split('\n')
+    const lines = finalCode.split('\n').filter(line => line.trim() !== '')
     
     return (
       <div style={{
-        background: '#090d16',
-        border: '1px solid rgba(255,255,255,0.08)',
+        background: '#0a0f1d',
+        border: '1px solid rgba(255,255,255,0.06)',
         borderRadius: '8px',
-        padding: '1rem 0.5rem',
+        padding: '1.25rem 0.5rem',
         fontFamily: '"Fira Code", "Courier New", Courier, monospace',
-        fontSize: '0.8rem',
-        color: '#cbd5e1',
+        fontSize: '0.82rem',
+        color: '#e2e8f0',
         overflowX: 'auto',
         textAlign: 'left',
         lineHeight: 1.6,
@@ -115,20 +125,20 @@ export default function Dashboard({ user, showToast }) {
         {lines.map((line, index) => {
           const isReplacedLine = selectedOptText && line.includes(selectedOptText)
           let lineBg = 'transparent'
-          let lineColor = '#cbd5e1'
+          let lineColor = '#e2e8f0'
           let lineWeight = 'normal'
 
           if (isReplacedLine) {
             lineBg = isChecked 
               ? (isCorrect ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)') 
-              : 'rgba(167, 139, 250, 0.12)'
+              : 'rgba(255, 255, 255, 0.06)'
             lineColor = isChecked 
               ? (isCorrect ? '#34d399' : '#f87171') 
-              : '#c084fc'
+              : '#ffffff'
             lineWeight = 'bold'
           } else if (line.includes('// TODO:')) {
-            lineBg = 'rgba(251, 191, 36, 0.05)'
-            lineColor = '#fbbf24'
+            lineBg = 'rgba(255, 255, 255, 0.03)'
+            lineColor = '#94a3b8'
             lineWeight = 'bold'
           }
 
