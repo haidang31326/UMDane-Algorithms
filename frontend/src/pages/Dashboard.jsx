@@ -146,7 +146,7 @@ export default function Dashboard({ user, showToast }) {
               }}>
                 {index + 1}
               </span>
-              <span style={{ whiteSpace: 'pre', color: lineColor, fontWeight: lineWeight }}>
+              <span style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: lineColor, fontWeight: lineWeight }}>
                 {line}
               </span>
             </div>
