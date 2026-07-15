@@ -20,11 +20,23 @@ Nền tảng chấm bài trực tuyến thông minh (Online Judge) kiểu LeetCo
    - Giới hạn phần cứng nghiêm ngặt (`--memory 128m`, `--cpus 0.5`) chống tấn công tràn ram, treo luồng (Fork Bomb).
    - Đo lường và báo lỗi chi tiết: **Accepted (AC)**, **Wrong Answer (WA)**, **Time Limit Exceeded (TLE)**, **Runtime Error (RE)**, **Compile Error (CE)**.
 
-4. **Tối ưu hiệu năng & Cache**:
+4. **Biểu đồ So sánh Hiệu năng kiểu LeetCode (LeetCode-style Analytics)**:
+   - Phân tích và trực quan hóa phân phối thời gian chạy (Runtime) và bộ nhớ tiêu thụ (Space) của bài làm so với toàn bộ cộng đồng.
+   - Tự động tính toán phần trăm vượt trội (Beats Percentile) bằng mô hình phân phối chuẩn Gaussian (phương sai tùy chỉnh) dựa trên dữ liệu trung bình và độ lệch chuẩn của các bài giải trong hệ thống.
+   - Hiển thị trực quan qua hai biểu đồ vùng phủ (Area Chart) sắc nét, tự động tô màu highlight vị trí hiệu năng của người dùng.
+
+5. **Thử thách Điền khuyết Code Hằng ngày (Daily Code Completion Challenge)**:
+   - Áp dụng phương pháp Spaced Repetition (Lặp lại ngắt quãng) tự động quét các bài toán đã giải trong vòng 7 ngày gần nhất để gợi ý ôn tập.
+   - **Tự động khuyết code bằng AI**: Gemini AI phân tích lời giải mẫu, cắt bỏ 1-3 dòng code logic mấu chốt (điều kiện dừng, công thức quy hoạch động, hoán vị phần tử...), thay thế bằng bình luận `// TODO`, đồng thời tự động tạo 2 phương án gây nhiễu logic tinh vi.
+   - **Khung Code Tương tác Modal**: Hộp thoại popup kính mờ toàn màn hình hiển thị code tối màu dịu mắt, số dòng code trực quan, hỗ trợ tự động xuống dòng (Word-Wrap) chống cuộn ngang.
+   - **Điền code thời gian thực (Live Insertion)**: Bấm chọn phương án trắc nghiệm sẽ lập tức chèn đoạn code đó vào vị trí khuyết trong khung code bên trên với màu highlight tím (đang chọn), xanh lá (đúng), hoặc đỏ (sai).
+   - **Bộ nhớ đệm hằng ngày**: Sử dụng `localStorage` lưu trạng thái hoàn thành ôn tập giúp widget tự động đóng và không làm phiền người học trong suốt ngày hôm đó.
+
+6. **Tối ưu hiệu năng & Cache**:
    - Tích hợp **Redis Cache** cho các truy vấn lấy thông tin bài toán.
    - Sử dụng cơ chế tuần tự hóa **JSON Serializer** (`RedisSerializer.json()`) thay vì JDK Serializer mặc định, giúp hệ thống hoạt động ổn định và chống crash khi cập nhật DTO lớp dữ liệu.
 
-5. **Trải nghiệm người dùng tiện lợi (UX/UI)**:
+7. **Trải nghiệm người dùng tiện lợi (UX/UI)**:
    - Giao diện tối hiện đại, hỗ trợ hiệu ứng Glassmorphism và tối ưu tương thích thiết bị.
    - Giao diện viết code Monaco Editor cao cấp (như VS Code).
    - Bộ chọn Test Case mẫu dạng Tab giúp nạp nhanh dữ liệu vào ô console chạy thử.
@@ -122,6 +134,7 @@ sequenceDiagram
 ### 2. Frontend
 - **React.js** (Vite)
 - **Monaco Editor** (`@monaco-editor/react`)
+- **Recharts** (Thư viện vẽ biểu đồ phân phối hiệu năng)
 - **Lucide Icons**
 
 ### 3. DevOps & Sandbox
