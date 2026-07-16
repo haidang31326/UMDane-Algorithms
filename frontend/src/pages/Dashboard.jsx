@@ -556,14 +556,60 @@ export default function Dashboard({ user, showToast }) {
 
             {/* Code Block Window */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'left' }}>
-                💻 MÃ NGUỒN GIẢI MẪU (REFERENCE SOLUTION)
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'left' }}>
+                  {viewingSolutionType === 'reference' ? '💡 LỜI GIẢI MẪU TỐI ƯU (OPTIMAL REFERENCE)' : '💻 BÀI LÀM CỦA BẠN (YOUR SOLUTION)'}
+                </div>
+                
+                {quizChecked && (
+                  <div style={{ display: 'flex', gap: '0.35rem' }}>
+                    <button
+                      onClick={() => setViewingSolutionType('user')}
+                      style={{
+                        padding: '0.25rem 0.65rem',
+                        borderRadius: '4px',
+                        border: viewingSolutionType === 'user' ? '1px solid rgba(167, 139, 250, 0.4)' : '1px solid rgba(255,255,255,0.06)',
+                        background: viewingSolutionType === 'user' ? 'rgba(167, 139, 250, 0.12)' : 'rgba(255,255,255,0.02)',
+                        color: viewingSolutionType === 'user' ? '#a78bfa' : 'var(--text-muted)',
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s'
+                      }}
+                      className="hover-glass"
+                    >
+                      Bài làm của bạn
+                    </button>
+                    <button
+                      onClick={() => setViewingSolutionType('reference')}
+                      style={{
+                        padding: '0.25rem 0.65rem',
+                        borderRadius: '4px',
+                        border: viewingSolutionType === 'reference' ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255,255,255,0.06)',
+                        background: viewingSolutionType === 'reference' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(255,255,255,0.02)',
+                        color: viewingSolutionType === 'reference' ? '#34d399' : 'var(--text-muted)',
+                        fontSize: '0.7rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s'
+                      }}
+                      className="hover-glass"
+                    >
+                      Lời giải tối ưu
+                    </button>
+                  </div>
+                )}
               </div>
-              {renderCodeBlock(
-                currentCard.maskedCode,
-                selectedAnswer !== null ? shuffledOptions[selectedAnswer].text : null,
-                quizChecked,
-                selectedAnswer !== null ? shuffledOptions[selectedAnswer].isCorrect : false
+              
+              {viewingSolutionType === 'reference' ? (
+                renderCodeBlock(currentCard.referenceSolution, null, false, false)
+              ) : (
+                renderCodeBlock(
+                  currentCard.maskedCode,
+                  selectedAnswer !== null ? shuffledOptions[selectedAnswer].text : null,
+                  quizChecked,
+                  selectedAnswer !== null ? shuffledOptions[selectedAnswer].isCorrect : false
+                )
               )}
             </div>
 
@@ -686,6 +732,7 @@ export default function Dashboard({ user, showToast }) {
                       onClick={() => {
                         setSelectedAnswer(null)
                         setQuizChecked(false)
+                        setViewingSolutionType('user')
                         setCurrentReviewIdx((prev) => (prev + 1) % yesterdayReviews.length)
                       }}
                       style={{
