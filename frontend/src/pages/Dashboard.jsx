@@ -95,6 +95,9 @@ export default function Dashboard({ user, showToast }) {
   const renderCodeBlock = (code, selectedOptText, isChecked, isCorrect) => {
     let finalCode = code || ''
     
+    // First, convert any literal escaped newline strings ("\\n" or "\n") to actual newlines
+    finalCode = finalCode.replace(/\\n/g, '\n');
+
     // Auto-formatting fallback: if code is compressed to a single line, split it by syntax tokens
     if (finalCode && !finalCode.includes('\n')) {
       finalCode = finalCode
