@@ -26,4 +26,10 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
             @Param("start") java.time.LocalDateTime start, 
             @Param("end") java.time.LocalDateTime end
     );
+
+    java.util.Optional<Submission> findFirstByUserIdAndProblemIdAndStatusOrderByCreatedAtDesc(
+            Long userId, 
+            Long problemId, 
+            com.Dane.UMDane.entity.SubmissionStatus status
+    );
 }

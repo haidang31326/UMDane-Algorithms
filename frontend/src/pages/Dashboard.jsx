@@ -58,6 +58,7 @@ export default function Dashboard({ user, showToast }) {
   const [selectedAnswer, setSelectedAnswer] = useState(null)
   const [quizChecked, setQuizChecked] = useState(false)
   const [reviewModalOpen, setReviewModalOpen] = useState(false)
+  const [viewingSolutionType, setViewingSolutionType] = useState('user') // 'user' or 'reference'
   const [reviewCompleted, setReviewCompleted] = useState(() => {
     const todayStr = new Date().toISOString().split('T')[0]
     return localStorage.getItem('review_completed_date') === todayStr

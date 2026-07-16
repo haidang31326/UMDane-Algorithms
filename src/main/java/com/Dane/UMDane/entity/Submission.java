@@ -42,6 +42,9 @@ public class Submission {
     @Column(name = "error_message", columnDefinition = "TEXT")
     private String errorMessage;
 
+    @Column(name = "review_digest", columnDefinition = "TEXT")
+    private String reviewDigest;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

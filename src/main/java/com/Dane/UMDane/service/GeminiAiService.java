@@ -259,7 +259,7 @@ public class GeminiAiService {
         private boolean isHidden;
     }
 
-    public String generateReviewDigestForProblem(String title, String description, String referenceSolution) {
+    public String generateReviewDigestForProblem(String title, String description, String userSolution, String referenceSolution) {
         if (!isApiKeyConfigured()) {
             throw new IllegalStateException("Gemini API key is not configured.");
         }
@@ -270,18 +270,20 @@ public class GeminiAiService {
         String prompt = String.format(
                 "Hãy phân tích bài tập lập trình '%s' với mô tả:\n" +
                 "\"\"\"\n%s\n\"\"\"\n" +
-                "Và mã nguồn giải mẫu hoàn chỉnh viết bằng Java:\n" +
+                "Dưới đây là mã nguồn của người dùng đã nộp và được chấp nhận (ACCEPTED):\n" +
+                "\"\"\"\n%s\n\"\"\"\n" +
+                "Và đây là mã nguồn giải mẫu tối ưu của hệ thống để bạn đối chiếu:\n" +
                 "\"\"\"\n%s\n\"\"\"\n\n" +
-                "Nhiệm vụ của bạn là biên soạn một thử thách ôn tập điền khuyết code (Code Completion Challenge) theo các yêu cầu sau:\n" +
+                "Nhiệm vụ của bạn là biên soạn một thử thách ôn tập điền khuyết code (Code Completion Challenge) dựa trên CHÍNH mã nguồn của người dùng (userSolution) theo các yêu cầu sau:\n" +
                 "1. Trích xuất một ý tưởng mấu chốt ngắn gọn để giải bài toán tối ưu nhất (keyInsight).\n" +
-                "2. Cắt bỏ 1 đến 3 dòng code logic mấu chốt nhất trong mã nguồn giải mẫu (ví dụ: điều kiện so sánh quyết định, công thức toán học/DP quy đổi, cập nhật trạng thái Map/Set, hoán vị phần tử...) và thay thế chính xác dòng code đó bằng chuỗi: `// TODO: Điền code còn thiếu tại đây`.\n" +
+                "2. Phân tích mã nguồn của người dùng (userSolution). Hãy định dạng lại thụt lề đầu dòng cho đẹp đẽ nếu code lộn xộn. Sau đó, hãy cắt bỏ 1 đến 3 dòng code logic mấu chốt nhất trong mã nguồn của người dùng (ví dụ: điều kiện dừng, phép gán hoặc so sánh quyết định, cập nhật biến đếm...) và thay thế chính xác dòng code đó bằng chuỗi: `// TODO: Điền code còn thiếu tại đây`.\n" +
                 "   Mã nguồn sau khi được thay thế này sẽ gọi là 'maskedCode'.\n" +
-                "   LƯU Ý CỰC KỲ QUAN TRỌNG: Mã nguồn trong 'maskedCode' bắt buộc phải giữ nguyên toàn bộ các ký tự xuống dòng '\\n' và khoảng trắng thụt lề đầu dòng y hệt như code Java chuẩn gốc. Tuyệt đối không được nén code thành một hàng ngang duy nhất.\n" +
-                "3. Trích xuất đoạn code chính xác bị cắt ra làm 'correctSnippet'.\n" +
+                "   LƯU Ý CỰC KỲ QUAN TRỌNG: Mã nguồn trong 'maskedCode' bắt buộc phải giữ nguyên toàn bộ các ký tự xuống dòng '\\n' và khoảng trắng thụt lề đầu dòng sạch đẹp y hệt như code Java chuẩn gốc. Tuyệt đối không được nén code thành một hàng ngang duy nhất.\n" +
+                "3. Trích xuất đoạn code chính xác bị cắt ra từ bài làm của người dùng làm 'correctSnippet'.\n" +
                 "4. Tạo thêm 2 phương án code gây nhiễu ('wrongSnippet1' và 'wrongSnippet2') có cấu trúc tương tự phương án đúng nhưng chứa lỗi logic nhỏ (ví dụ: sai toán tử so sánh, sai chỉ số, nhầm lẫn biến hoặc điều kiện biên lệch).\n" +
                 "5. Viết lời giải thích chi tiết ngắn gọn (explanation) tại sao đoạn code đúng mới giúp thuật toán hoạt động chính xác.\n" +
                 "Bắt buộc trả về kết quả bằng tiếng Việt theo định dạng JSON khớp hoàn toàn với schema quy định.",
-                title, description, referenceSolution
+                title, description, userSolution, referenceSolution
         );
 
         try {

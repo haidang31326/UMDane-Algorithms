@@ -169,15 +169,32 @@ public class ProblemController {
         // 5. Build review cards list
         List<java.util.Map<String, Object>> reviewCards = new java.util.ArrayList<>();
         for (com.Dane.UMDane.entity.Problem p : problems) {
-            String digestJson = p.getReviewDigest();
+            java.util.Optional<com.Dane.UMDane.entity.Submission> subOpt = submissionRepository.findFirstByUserIdAndProblemIdAndStatusOrderByCreatedAtDesc(
+                    userPrincipal.getId(),
+                    p.getId(),
+                    com.Dane.UMDane.entity.SubmissionStatus.ACCEPTED
+            );
+
+            if (subOpt.isEmpty()) {
+                continue;
+            }
+
+            com.Dane.UMDane.entity.Submission sub = subOpt.get();
+            String digestJson = sub.getReviewDigest();
+
             if (digestJson == null || digestJson.trim().isEmpty() || !digestJson.contains("maskedCode")) {
                 try {
-                    // Lazy AI generation and caching
-                    digestJson = geminiAiService.generateReviewDigestForProblem(p.getTitle(), p.getDescription(), p.getReferenceSolution());
-                    p.setReviewDigest(digestJson);
-                    problemRepository.save(p);
+                    // Lazy AI generation and caching based on User's accepted code
+                    digestJson = geminiAiService.generateReviewDigestForProblem(
+                            p.getTitle(),
+                            p.getDescription(),
+                            sub.getCode(),
+                            p.getReferenceSolution()
+                    );
+                    sub.setReviewDigest(digestJson);
+                    submissionRepository.save(sub);
                 } catch (Exception e) {
-                    log.error("Lỗi khi sinh ôn tập tự động bằng AI cho bài ID = {}", p.getId(), e);
+                    log.error("Lỗi khi sinh ôn tập điền khuyết code bằng AI cho bài ID = {}, submission ID = {}", p.getId(), sub.getId(), e);
                     continue; // Skip this card if generation fails
                 }
             }
@@ -191,11 +208,13 @@ public class ProblemController {
                 card.put("title", p.getTitle());
                 card.put("topic", p.getTopic());
                 card.put("difficulty", p.getDifficulty());
+                card.put("referenceSolution", p.getReferenceSolution());
+                card.put("userSolution", sub.getCode());
                 card.putAll(digestMap);
                 
                 reviewCards.add(card);
             } catch (Exception e) {
-                log.error("Lỗi khi giải mã review_digest của bài ID = {}", p.getId(), e);
+                log.error("Lỗi khi giải mã review_digest của submission ID = {}", sub.getId(), e);
             }
         }
 
