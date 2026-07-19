@@ -65,27 +65,58 @@ public class Solution {
 }`
 
   useEffect(() => {
-    const fetchProblem = async () => {
+    const fetchProblemAndLastSubmission = async () => {
       try {
-        const response = await fetch(`/api/problems/${id}`, {
+        // 1. Tải thông tin đề bài như bình thường
+        const problemResponse = await fetch(`/api/problems/${id}`, {
           headers: user ? { 'Authorization': `Bearer ${user.token}` } : {}
         })
-        if (response.ok) {
-          const data = await response.json()
-          setProblem(data)
+
+        if (problemResponse.ok) {
+          const problemData = await problemResponse.json()
+          setProblem(problemData)
+
+          let initialCode = problemData.userTemplate ? problemData.userTemplate : defaultTemplate;
+
+          // 2. NƯỚC ĐI CỨU MẠNG: Tải bài làm gần nhất từ Database nếu đã đăng nhập
+          if (user) {
+            try {
+              const subResponse = await fetch('/api/submissions', {
+                headers: { 'Authorization': `Bearer ${user.token}` }
+              })
+              if (subResponse.ok) {
+                const subData = await subResponse.json()
+                // subData.data thường là List<Submission> do API trả về ApiResponse
+                const submissionsList = subData.data || subData;
+
+                // Lọc ra bài làm mới nhất của bài tập này
+                const lastSub = submissionsList.find(sub => sub.problemId === parseInt(id));
+
+                if (lastSub && lastSub.code) {
+                  initialCode = lastSub.code; // Ưu tiên lấy code đã lưu dưới DB vĩnh viễn!
+                }
+              }
+            } catch (subErr) {
+              console.warn("Không lấy được lịch sử bài làm từ DB, sẽ dùng draft/template", subErr);
+            }
+          }
+
+          // 3. Cơ chế đồng bộ LocalStorage (Chỉ dùng làm bản Nháp khi gõ dở)
           const draftKey = `umdane_draft_${user ? user.id : 'anon'}_${id}`
           const savedDraft = localStorage.getItem(draftKey)
+
           if (savedDraft) {
             setCode(savedDraft)
           } else {
-            setCode(data.userTemplate ? data.userTemplate : defaultTemplate)
+            setCode(initialCode)
           }
-          if (data.sampleTestCases && data.sampleTestCases.length > 0) {
-            setRunInput(data.sampleTestCases[0].inputData)
+
+          if (problemData.sampleTestCases && problemData.sampleTestCases.length > 0) {
+            setRunInput(problemData.sampleTestCases[0].inputData)
           }
         } else {
           try {
-            const errData = await response.json()
+            const errData = await problemResponse.json()
             showToast(errData.message || 'Không tìm thấy bài tập!', 'error')
           } catch (e) {
             showToast('Không tìm thấy bài tập!', 'error')
@@ -98,8 +129,8 @@ public class Solution {
       }
     }
 
-    fetchProblem()
-  }, [id])
+    fetchProblemAndLastSubmission()
+  }, [id, user]) // Thêm user vào dependency để chạy lại khi user đăng nhập thành công
 
   const handleReset = () => {
     if (!problem) return
